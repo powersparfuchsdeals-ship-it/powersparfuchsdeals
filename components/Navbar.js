@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase';
 
 export default function Navbar({ user }) {
-
   async function logout(){
     await supabase.auth.signOut();
     location.reload();

@@ -1,19 +1,29 @@
-async function register() {
-  try {
-    const { data, error } = await supabase.auth.signUp({
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
+
+export default function Register(){
+  const [email,setEmail]=useState('');
+  const [password,setPassword]=useState('');
+
+  async function register(){
+    const { error } = await supabase.auth.signUp({
       email,
-      password,
+      password
     });
 
-    if (error) {
-      alert("Supabase-Fehler: " + error.message);
-      return;
+    if(error){
+      alert(error.message);
+    } else {
+      alert("Registrierung erfolgreich!");
     }
-
-    alert("Registrierung erfolgreich! Prüfe ggf. deine E-Mail.");
-    console.log("Signup data:", data);
-  } catch (err) {
-    alert("Netzwerkfehler: " + err.message);
-    console.error("Signup fetch error:", err);
   }
+
+  return (
+    <div style={{padding:"40px"}}>
+      <h1>Registrieren</h1>
+      <input placeholder="Email" onChange={e=>setEmail(e.target.value)} />
+      <input type="password" placeholder="Passwort" onChange={e=>setPassword(e.target.value)} />
+      <button onClick={register}>Registrieren</button>
+    </div>
+  );
 }

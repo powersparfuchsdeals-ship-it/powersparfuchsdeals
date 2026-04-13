@@ -21,15 +21,11 @@ export default function Admin(){
   }
 
   async function upload(){
-    if(!file) return alert("Bild fehlt");
-
     const fileName = Date.now()+file.name;
 
     await supabase.storage.from('images').upload(fileName,file);
 
-    const { data } = supabase.storage
-      .from('images')
-      .getPublicUrl(fileName);
+    const { data } = supabase.storage.from('images').getPublicUrl(fileName);
 
     await supabase.from('products').insert([{
       name,
@@ -44,12 +40,10 @@ export default function Admin(){
 
   return (
     <div style={{padding:"40px"}}>
-      <h1>Admin Bereich</h1>
-
+      <h1>Admin</h1>
       <input placeholder="Name" onChange={e=>setName(e.target.value)} />
       <input placeholder="Preis" onChange={e=>setPrice(e.target.value)} />
       <input type="file" onChange={e=>setFile(e.target.files[0])} />
-
       <button onClick={upload}>Upload</button>
     </div>
   );

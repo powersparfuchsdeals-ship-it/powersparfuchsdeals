@@ -38,8 +38,7 @@ export default function Home(){
             <div key={p.id} style={{
               background:"#0f172a",
               padding:"20px",
-              borderRadius:"16px",
-              boxShadow:"0 0 20px rgba(0,0,0,0.5)"
+              borderRadius:"16px"
             }}>
               <img src={p.image} style={{
                 width:"100%",
