@@ -637,5 +637,34 @@ button, input, textarea {
   border: 1px solid rgba(124, 232, 255, 0.18);
   color: #d8f8ff;
 }
+.auth-error {
+  margin-top: 16px !important;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 80, 110, 0.08);
+  border: 1px solid rgba(255, 80, 110, 0.18);
+  color: #ffd1db;
 }
+
+.auth-info {
+  margin-top: 16px !important;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(124, 232, 255, 0.08);
+  border: 1px solid rgba(124, 232, 255, 0.18);
+  color: #d8f8ff;
+}
+
+.auth-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(150, 173, 255, 0.14);
+  color: #d8e5ff;
+}
+}
+
 
