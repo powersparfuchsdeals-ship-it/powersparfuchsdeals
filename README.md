@@ -1,33 +1,30 @@
-# 💎 Tech Shop PREMIUM Version
+# Orbital Noir Store
 
-## Features
-- Next.js App
-- Supabase Auth (Login/Register)
-- Produkt Upload (mit Bild Upload vorbereitet)
-- Modernes Premium Design (Dark Tech Style)
+Eigenständiger futuristischer Stil für deinen Technik-Shop.
 
 ## Setup
+1. npm install
+2. Umgebungsvariablen setzen:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+3. npm run dev
 
-npm install
-npm run dev
+## Supabase SQL
+```sql
+create extension if not exists "uuid-ossp";
 
-## Supabase
-
-1. Auth aktivieren (Email Login)
-2. Storage Bucket erstellen: images
-3. Tabelle:
-
-create table products (
+create table if not exists products (
   id uuid primary key default uuid_generate_v4(),
-  name text,
-  price numeric,
+  name text not null,
+  price numeric not null default 0,
+  description text,
   image text,
-  user_id uuid
+  user_id uuid references auth.users(id) on delete set null,
+  created_at timestamptz default now()
 );
+```
 
-## ENV
-
-.env.local:
-
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+## Storage
+Bucket:
+- images
+- Public aktivieren

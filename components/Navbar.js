@@ -1,34 +1,41 @@
 import { supabase } from '../lib/supabase';
 
 export default function Navbar({ user }) {
-  async function logout(){
+  async function logout() {
     await supabase.auth.signOut();
-    location.reload();
+    location.href = '/';
   }
 
   return (
-    <div style={{
-      display:"flex",
-      justifyContent:"space-between",
-      padding:"20px",
-      background:"#020617",
-      color:"white"
-    }}>
-      <h2>⚡ Tech Shop</h2>
+    <header className="nav-wrap">
+      <div className="shell nav">
+        <a href="/" className="brand">
+          <div className="brand-mark">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div>
+            <div className="brand-name">Orbital Noir</div>
+            <div className="brand-subline">Future Devices Archive</div>
+          </div>
+        </a>
 
-      <div>
-        {!user ? (
-          <>
-            <a href="/login" style={{marginRight:"10px"}}>Login</a>
-            <a href="/register">Register</a>
-          </>
-        ) : (
-          <>
-            <a href="/admin" style={{marginRight:"10px"}}>Admin</a>
-            <button onClick={logout}>Logout</button>
-          </>
-        )}
+        <nav className="nav-links">
+          <a className="nav-link" href="/">Archiv</a>
+          {!user ? (
+            <>
+              <a className="nav-link" href="/login">Login</a>
+              <a className="nav-cta" href="/register">Zugang anfordern</a>
+            </>
+          ) : (
+            <>
+              <a className="nav-link" href="/admin">Control Deck</a>
+              <button className="nav-cta" onClick={logout}>Logout</button>
+            </>
+          )}
+        </nav>
       </div>
-    </div>
+    </header>
   );
 }
