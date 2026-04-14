@@ -4,14 +4,40 @@ import { supabase } from '../lib/supabase';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   async function login() {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert(error.message);
-      return;
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        const msg = error.message.toLowerCase();
+
+        if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+          setMessage('Deine E-Mail ist noch nicht bestätigt. Prüfe dein Postfach oder deaktiviere in Supabase die E-Mail-Bestätigung für Tests.');
+        } else if (msg.includes('invalid login credentials')) {
+          setMessage('E-Mail oder Passwort ist falsch.');
+        } else {
+          setMessage(error.message);
+        }
+        return;
+      }
+
+      if (data?.user) {
+        location.href = '/admin';
+      }
+    } catch (err) {
+      setMessage('Login fehlgeschlagen. Prüfe deine Supabase-Einstellungen und versuche es erneut.');
+    } finally {
+      setLoading(false);
     }
-    location.href = '/admin';
   }
 
   return (
@@ -24,16 +50,23 @@ export default function Login() {
         <input
           className="field"
           placeholder="E-Mail"
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <input
           className="field"
           type="password"
           placeholder="Passwort"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button className="primary-btn auth-btn" onClick={login}>Login</button>
+        <button className="primary-btn auth-btn" onClick={login} disabled={loading}>
+          {loading ? 'Prüfe Zugang...' : 'Login'}
+        </button>
+
+        {message ? <p className="auth-error">{message}</p> : null}
+
         <p className="auth-switch">
           Noch kein Zugang? <a href="/register">Zugang anfordern</a>
         </p>
