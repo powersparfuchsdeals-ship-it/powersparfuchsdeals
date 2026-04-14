@@ -1,35 +1,33 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function Admin() {
-  const [user, setUser] = useState(null);
+export default function Admin({ session, authReady }) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState(null);
+  const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    checkUser();
-  }, []);
-
-  async function checkUser() {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) {
+    if (authReady && !session) {
       location.href = '/login';
-      return;
     }
-    setUser(data.user);
-  }
+  }, [authReady, session]);
 
   async function upload() {
-    if (!user) return alert('Bitte erst einloggen.');
-    if (!name || !price || !file) return alert('Bitte Name, Preis und Bild ausfüllen.');
+    if (!session?.user) return setMessage('Bitte erst einloggen.');
+    if (!name || !price || !file) return setMessage('Bitte Name, Preis und Bild ausfüllen.');
 
-    const fileName = Date.now() + '-' + file.name;
+    setSaving(true);
+    setMessage('');
+
+    const fileName = `${Date.now()}-${file.name}`;
     const uploadResult = await supabase.storage.from('images').upload(fileName, file);
 
     if (uploadResult.error) {
-      alert(uploadResult.error.message);
+      setMessage(uploadResult.error.message);
+      setSaving(false);
       return;
     }
 
@@ -40,17 +38,31 @@ export default function Admin() {
       price,
       description,
       image: data.publicUrl,
-      user_id: user.id
+      user_id: session.user.id
     }]);
 
     if (insertResult.error) {
-      alert(insertResult.error.message);
+      setMessage(insertResult.error.message);
+      setSaving(false);
       return;
     }
 
-    alert('Modul gespeichert');
     location.href = '/';
   }
+
+  if (!authReady) {
+    return (
+      <div className="auth-page">
+        <div className="auth-panel wide-panel">
+          <div className="micro-label">Control Deck</div>
+          <h1>Zugriff wird geprüft</h1>
+          <p>Bitte einen Moment warten …</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) return null;
 
   return (
     <div className="auth-page">
@@ -80,8 +92,12 @@ export default function Admin() {
           onChange={(e) => setFile(e.target.files[0])}
         />
 
+        {message ? <p className="auth-error">{message}</p> : null}
+
         <div className="admin-actions">
-          <button className="primary-btn auth-btn" onClick={upload}>Modul speichern</button>
+          <button className="primary-btn auth-btn" onClick={upload} disabled={saving}>
+            {saving ? 'Speichere Modul...' : 'Modul speichern'}
+          </button>
           <a className="ghost-btn" href="/">Zurück ins Archiv</a>
         </div>
       </div>

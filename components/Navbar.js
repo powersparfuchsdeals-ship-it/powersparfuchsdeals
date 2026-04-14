@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase';
 
-export default function Navbar({ user }) {
+export default function Navbar({ session, authReady }) {
   async function logout() {
     await supabase.auth.signOut();
-    location.href = '/';
+    location.href = '/login';
   }
 
   return (
@@ -23,7 +23,10 @@ export default function Navbar({ user }) {
 
         <nav className="nav-links">
           <a className="nav-link" href="/">Archiv</a>
-          {!user ? (
+
+          {!authReady ? (
+            <span className="auth-pill">Status wird geladen …</span>
+          ) : !session ? (
             <>
               <a className="nav-link" href="/login">Login</a>
               <a className="nav-cta" href="/register">Zugang anfordern</a>

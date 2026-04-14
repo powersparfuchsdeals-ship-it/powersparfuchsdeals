@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function Login() {
+export default function Login({ session, authReady }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (authReady && session) {
+      location.href = '/admin';
+    }
+  }, [authReady, session]);
 
   async function login() {
     setLoading(true);
@@ -30,14 +36,26 @@ export default function Login() {
         return;
       }
 
-      if (data?.user) {
+      if (data?.session) {
         location.href = '/admin';
       }
-    } catch (err) {
+    } catch (_err) {
       setMessage('Login fehlgeschlagen. Prüfe deine Supabase-Einstellungen und versuche es erneut.');
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!authReady) {
+    return (
+      <div className="auth-page">
+        <div className="auth-panel">
+          <div className="micro-label">Access Terminal</div>
+          <h1>Session wird geprüft</h1>
+          <p>Bitte einen Moment warten …</p>
+        </div>
+      </div>
+    );
   }
 
   return (

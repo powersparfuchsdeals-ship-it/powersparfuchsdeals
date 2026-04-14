@@ -2,19 +2,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import Navbar from '../components/Navbar';
 
-export default function Home() {
+export default function Home({ session, authReady }) {
   const [products, setProducts] = useState([]);
-  const [user, setUser] = useState(null);
 
   useEffect(() => {
     loadProducts();
-    checkUser();
   }, []);
-
-  async function checkUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
 
   async function loadProducts() {
     const { data } = await supabase
@@ -30,7 +23,7 @@ export default function Home() {
       <div className="bg-orb bg-orb-a" />
       <div className="bg-orb bg-orb-b" />
       <div className="grid-noise" />
-      <Navbar user={user} />
+      <Navbar session={session} authReady={authReady} />
 
       <main className="shell">
         <section className="hero">
@@ -43,8 +36,12 @@ export default function Home() {
             </p>
 
             <div className="hero-actions">
-              <a className="primary-btn" href="/register">Archiv betreten</a>
-              <a className="ghost-btn" href="/admin">Control Deck</a>
+              {!session ? (
+                <a className="primary-btn" href="/register">Archiv betreten</a>
+              ) : (
+                <a className="primary-btn" href="/admin">Zum Control Deck</a>
+              )}
+              <a className="ghost-btn" href="/login">Terminal öffnen</a>
             </div>
 
             <div className="signal-row">
@@ -57,8 +54,8 @@ export default function Home() {
                 <div className="signal-value">Orbital</div>
               </div>
               <div className="signal-card">
-                <div className="signal-label">Systemkern</div>
-                <div className="signal-value">Next / Supabase</div>
+                <div className="signal-label">Session</div>
+                <div className="signal-value">{authReady ? (session ? 'Aktiv' : 'Gast') : 'Lädt'}</div>
               </div>
             </div>
           </div>
@@ -126,7 +123,9 @@ export default function Home() {
 
                   <div className="module-footer">
                     <div className="module-price">{p.price} €</div>
-                    <a className="ghost-btn small-btn" href="/login">Öffnen</a>
+                    <a className="ghost-btn small-btn" href={session ? '/admin' : '/login'}>
+                      {session ? 'Verwalten' : 'Öffnen'}
+                    </a>
                   </div>
                 </div>
               </article>
