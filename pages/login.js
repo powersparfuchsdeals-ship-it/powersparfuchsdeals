@@ -1,92 +1,44 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-export default function Login({ session, authReady }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (authReady && session) {
-      location.href = '/admin';
-    }
-  }, [authReady, session]);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) window.location.href = "/admin";
+    });
+  }, []);
 
   async function login() {
-    setLoading(true);
-    setMessage('');
+    setMessage("");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        const msg = error.message.toLowerCase();
-
-        if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
-          setMessage('Deine E-Mail ist noch nicht bestätigt. Prüfe dein Postfach oder deaktiviere in Supabase die E-Mail-Bestätigung für Tests.');
-        } else if (msg.includes('invalid login credentials')) {
-          setMessage('E-Mail oder Passwort ist falsch.');
-        } else {
-          setMessage(error.message);
-        }
-        return;
-      }
-
-      if (data?.session) {
-        location.href = '/admin';
-      }
-    } catch (_err) {
-      setMessage('Login fehlgeschlagen. Prüfe deine Supabase-Einstellungen und versuche es erneut.');
-    } finally {
-      setLoading(false);
+    if (error) {
+      setMessage(error.message);
+      return;
     }
-  }
 
-  if (!authReady) {
-    return (
-      <div className="auth-page">
-        <div className="auth-panel">
-          <div className="micro-label">Access Terminal</div>
-          <h1>Session wird geprüft</h1>
-          <p>Bitte einen Moment warten …</p>
-        </div>
-      </div>
-    );
+    window.location.href = "/admin";
   }
 
   return (
     <div className="auth-page">
       <div className="auth-panel">
         <div className="micro-label">Access Terminal</div>
-        <h1>Eintritt in Orbital Noir</h1>
-        <p>Authentifiziere dich, um neue Module ins Archiv einzuspeisen.</p>
+        <h1>Login</h1>
+        <p>Melde dich an, um Produkte zu verwalten.</p>
 
-        <input
-          className="field"
-          placeholder="E-Mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="field"
-          type="password"
-          placeholder="Passwort"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <input className="field" placeholder="E-Mail" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="field" type="password" placeholder="Passwort" value={password} onChange={(e) => setPassword(e.target.value)} />
 
-        <button className="primary-btn auth-btn" onClick={login} disabled={loading}>
-          {loading ? 'Prüfe Zugang...' : 'Login'}
-        </button>
-
+        <button className="primary-btn auth-btn" onClick={login}>Einloggen</button>
         {message ? <p className="auth-error">{message}</p> : null}
 
         <p className="auth-switch">
-          Noch kein Zugang? <a href="/register">Zugang anfordern</a>
+          Noch kein Konto? <a href="/register">Jetzt registrieren</a>
         </p>
       </div>
     </div>
