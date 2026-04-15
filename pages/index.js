@@ -123,9 +123,15 @@ export default function Home({ session, authReady }) {
 
                   <div className="module-footer">
                     <div className="module-price">{p.price} €</div>
-                    <a className="ghost-btn small-btn" href={session ? '/admin' : '/login'}>
-                      {session ? 'Verwalten' : 'Öffnen'}
-                    </a>
+                    {p.buy_link ? (
+                      <a className="ghost-btn small-btn" href={p.buy_link} target="_blank" rel="noreferrer">
+                        Kaufen
+                      </a>
+                    ) : (
+                      <a className="ghost-btn small-btn" href={session ? '/admin' : '/login'}>
+                        {session ? 'Verwalten' : 'Öffnen'}
+                      </a>
+                    )}
                   </div>
                 </div>
               </article>

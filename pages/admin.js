@@ -6,6 +6,7 @@ export default function Admin({ session, authReady }) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [buyLink, setBuyLink] = useState('');
   const [search, setSearch] = useState('');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -69,7 +70,13 @@ export default function Admin({ session, authReady }) {
     }
 
     if (editingId) {
-      const updatePayload = { name, price, description };
+      const updatePayload = {
+        name,
+        price,
+        description,
+        buy_link: buyLink
+      };
+
       if (imageUrl) updatePayload.image = imageUrl;
 
       const { error } = await supabase
@@ -91,6 +98,7 @@ export default function Admin({ session, authReady }) {
           name,
           price,
           description,
+          buy_link: buyLink,
           image: imageUrl,
           user_id: session.user.id
         }]);
@@ -109,17 +117,24 @@ export default function Admin({ session, authReady }) {
     setSaving(false);
   }
 
-  async function deleteProduct(id) {
+  async function deleteProduct(product) {
     const ok = window.confirm('Dieses Produkt wirklich löschen?');
     if (!ok) return;
 
-    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (product.image) {
+      const path = product.image.split('/images/')[1];
+      if (path) {
+        await supabase.storage.from('images').remove([path]);
+      }
+    }
+
+    const { error } = await supabase.from('products').delete().eq('id', product.id);
     if (error) {
       setMessage(error.message);
       return;
     }
 
-    if (editingId === id) resetForm();
+    if (editingId === product.id) resetForm();
     setMessage('Produkt gelöscht.');
     await loadProducts();
   }
@@ -129,6 +144,7 @@ export default function Admin({ session, authReady }) {
     setName(product.name || '');
     setPrice(product.price || '');
     setDescription(product.description || '');
+    setBuyLink(product.buy_link || '');
     setPreview(product.image || null);
     setFile(null);
     setMessage('Bearbeitungsmodus aktiv.');
@@ -140,6 +156,7 @@ export default function Admin({ session, authReady }) {
     setName('');
     setPrice('');
     setDescription('');
+    setBuyLink('');
     setFile(null);
     setPreview(null);
   }
@@ -148,7 +165,7 @@ export default function Admin({ session, authReady }) {
     const q = search.trim().toLowerCase();
     if (!q) return products;
     return products.filter((p) =>
-      [p.name, p.description, String(p.price)]
+      [p.name, p.description, p.buy_link, String(p.price)]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
     );
@@ -228,6 +245,7 @@ export default function Admin({ session, authReady }) {
               <input className="field" placeholder="Produktname" value={name} onChange={(e) => setName(e.target.value)} />
               <input className="field" placeholder="Preis in Euro" value={price} onChange={(e) => setPrice(e.target.value)} />
               <textarea className="field field-area" placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <input className="field" placeholder="Verkaufslink / Kauf-URL" value={buyLink} onChange={(e) => setBuyLink(e.target.value)} />
               <input className="field field-file" type="file" onChange={handleFile} />
 
               {preview ? (
@@ -273,13 +291,18 @@ export default function Admin({ session, authReady }) {
                         <div>
                           <h3>{product.name}</h3>
                           <p>{product.description || 'Keine Beschreibung hinterlegt.'}</p>
+                          {product.buy_link ? (
+                            <p style={{ marginTop: '10px', wordBreak: 'break-word' }}>
+                              <strong>Verkaufslink:</strong> {product.buy_link}
+                            </p>
+                          ) : null}
                         </div>
                         <strong className="admin-product-price">{product.price} €</strong>
                       </div>
 
                       <div className="admin-product-actions">
                         <button className="ghost-btn" onClick={() => editProduct(product)}>Bearbeiten</button>
-                        <button className="danger-btn" onClick={() => deleteProduct(product.id)}>Löschen</button>
+                        <button className="danger-btn" onClick={() => deleteProduct(product)}>Löschen</button>
                       </div>
                     </div>
                   </article>
