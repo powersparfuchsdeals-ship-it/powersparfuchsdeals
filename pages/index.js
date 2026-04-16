@@ -1,3 +1,6 @@
+<a href={`/product/${product.id}`}>
+  <img ... />
+</a>
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
