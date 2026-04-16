@@ -89,43 +89,58 @@ export default function Home() {
               <a className="primary-btn" href="/admin">Produkt anlegen</a>
             </div>
           ) : (
-            products.map((p, index) => (
-              <article
-                key={p.id}
-                className={`module-card ${index % 3 === 0 ? "module-wide" : ""}`}
-              >
-                <div className="module-media">
-                  <img
-                    src={p.image || "https://via.placeholder.com/1200x900?text=Orbital-Noir"}
-                    alt={p.name}
-                  />
-                </div>
-
-                <div className="module-body">
-                  <div className="module-meta">
-                    <span className="module-chip">Orbital Drop</span>
-                    <span className="module-index">{String(index + 1).padStart(2, "0")}</span>
-                  </div>
-
-                  <h3>{p.name}</h3>
-                  <p>{p.description || "Premium Produkt mit eigenständiger Tech-Ästhetik."}</p>
-
-                  <div className="module-footer">
-                    <div className="module-price">{p.price} €</div>
-                    {p.buy_link ? (
-                      <a className="ghost-btn small-btn" href={p.buy_link} target="_blank" rel="noreferrer">
-                        Kaufen
-                      </a>
-                    ) : (
-                      <span className="ghost-btn small-btn disabled-btn">Kein Link</span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))
-          )}
-        </section>
-      </main>
+            <section className="module-grid">
+  {products.length === 0 ? (
+    <div className="empty-state">
+      <div className="micro-label">Archiv leer</div>
+      <h3>Noch keine Produkte vorhanden</h3>
+      <p>Öffne den Adminbereich und füge deine ersten Produkte hinzu.</p>
+      <a className="primary-btn" href="/admin">Produkt anlegen</a>
     </div>
-  );
-}
+  ) : (
+    products.map((p, index) => (
+      <article
+        key={p.id}
+        className={`module-card ${index % 3 === 0 ? "module-wide" : ""}`}
+      >
+        <div className="module-media">
+          <a href={`/product/${p.id}`}>
+            <img
+              src={p.image || "https://via.placeholder.com/1200x900?text=Orbital-Noir"}
+              alt={p.name}
+            />
+          </a>
+        </div>
+
+        <div className="module-body">
+          <div className="module-meta">
+            <span className="module-chip">Orbital Drop</span>
+            <span className="module-index">{String(index + 1).padStart(2, "0")}</span>
+          </div>
+
+          <h3>
+            <a href={`/product/${p.id}`}>{p.name}</a>
+          </h3>
+
+          <p>{p.description || "Premium Produkt mit eigenständiger Tech-Ästhetik."}</p>
+
+          <div className="module-footer">
+            <div className="module-price">{p.price} €</div>
+            {p.buy_link ? (
+              <a
+                className="ghost-btn small-btn"
+                href={p.buy_link}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Kaufen
+              </a>
+            ) : (
+              <span className="ghost-btn small-btn disabled-btn">Kein Link</span>
+            )}
+          </div>
+        </div>
+      </article>
+    ))
+  )}
+</section>
