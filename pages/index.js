@@ -122,13 +122,19 @@ export default function Home() {
                     <div className="module-price">{p.price} €</div>
                     {p.buy_link ? (
                       <a
-                        className="ghost-btn small-btn"
-                        href={p.buy_link}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Kaufen
-                      </a>
+  className="ghost-btn small-btn"
+  href={p.buy_link}
+  target="_blank"
+  rel="noreferrer"
+  onClick={async () => {
+    await supabase
+      .from("products")
+      .update({ clicks: (p.clicks || 0) + 1 })
+      .eq("id", p.id);
+  }}
+>
+  🔥 Zum Deal
+</a>
                     ) : (
                       <span className="ghost-btn small-btn disabled-btn">Kein Link</span>
                     )}
