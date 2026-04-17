@@ -21,12 +21,24 @@ export default function Home() {
   }, []);
 
   async function loadProducts() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("products")
       .select("*")
+      .order("clicks", { ascending: false })
       .order("created_at", { ascending: false });
 
-    setProducts(data || []);
+    if (!error) {
+      setProducts(data || []);
+    }
+  }
+
+  const topProducts = [...products].slice(0, 3);
+
+  async function trackClick(product) {
+    await supabase
+      .from("products")
+      .update({ clicks: (product.clicks || 0) + 1 })
+      .eq("id", product.id);
   }
 
   return (
@@ -47,7 +59,6 @@ export default function Home() {
             </p>
 
             <div className="hero-actions">
-              <a className="primary-btn" href="/admin">Zum Admin</a>
               <a className="ghost-btn" href="/register">Konto erstellen</a>
             </div>
           </div>
@@ -72,6 +83,66 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {topProducts.length > 0 && (
+          <>
+            <section className="section-head">
+              <div>
+                <div className="micro-label">Trending</div>
+                <h2>Top Produkte</h2>
+              </div>
+              <p>Die aktuell meistgeklickten Angebote.</p>
+            </section>
+
+            <section className="module-grid">
+              {topProducts.map((p, index) => (
+                <article
+                  key={p.id}
+                  className={`module-card ${index === 0 ? "module-wide" : ""}`}
+                >
+                  <div className="module-media">
+                    <a href={`/product/${p.id}`}>
+                      <img
+                        src={p.image || "https://via.placeholder.com/1200x900?text=Orbital-Noir"}
+                        alt={p.name}
+                      />
+                    </a>
+                  </div>
+
+                  <div className="module-body">
+                    <div className="module-meta">
+                      <span className="module-chip">🔥 Bestseller</span>
+                      <span className="module-index">{p.clicks || 0} Klicks</span>
+                    </div>
+
+                    <h3>
+                      <a href={`/product/${p.id}`}>{p.name}</a>
+                    </h3>
+
+                    <p>{p.description || "Top Deal mit hoher Klickrate."}</p>
+
+                    <div className="module-footer">
+                      <div className="module-price">{p.price} €</div>
+                      {p.buy_link ? (
+                        <a
+                          className="ghost-btn small-btn"
+                          href={p.buy_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => trackClick(p)}
+                        >
+                          🔥 Zum Deal
+                        </a>
+                      ) : (
+                        <span className="ghost-btn small-btn disabled-btn">Kein Link</span>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </>
+        )}
 
         <section className="section-head">
           <div>
@@ -106,10 +177,10 @@ export default function Home() {
 
                 <div className="module-body">
                   <div className="module-meta">
-                    <span className="module-chip">Orbital Drop</span>
-                    <span className="module-index">
-                      {String(index + 1).padStart(2, "0")}
+                    <span className="module-chip">
+                      {(p.clicks || 0) > 10 ? "🔥 Beliebt" : "Orbital Drop"}
                     </span>
+                    <span className="module-index">{String(index + 1).padStart(2, "0")}</span>
                   </div>
 
                   <h3>
@@ -122,19 +193,14 @@ export default function Home() {
                     <div className="module-price">{p.price} €</div>
                     {p.buy_link ? (
                       <a
-  className="ghost-btn small-btn"
-  href={p.buy_link}
-  target="_blank"
-  rel="noreferrer"
-  onClick={async () => {
-    await supabase
-      .from("products")
-      .update({ clicks: (p.clicks || 0) + 1 })
-      .eq("id", p.id);
-  }}
->
-  🔥 Zum Deal
-</a>
+                        className="ghost-btn small-btn"
+                        href={p.buy_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => trackClick(p)}
+                      >
+                        🔥 Zum Deal
+                      </a>
                     ) : (
                       <span className="ghost-btn small-btn disabled-btn">Kein Link</span>
                     )}
