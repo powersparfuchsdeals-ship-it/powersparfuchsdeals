@@ -70,11 +70,14 @@ export default async function handler(req, res) {
   }
 
   const expectedSecret = process.env.CRON_SECRET;
-  const token = getBearerToken(req);
+const token = getBearerToken(req);
 
-  if (!expectedSecret || token !== expectedSecret) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
+// erkennt echten Vercel Cron Call
+const isCron = req.headers["x-vercel-cron"] === "1";
+
+if (!isCron && (!expectedSecret || token !== expectedSecret)) {
+  return res.status(401).json({ ok: false, error: "Unauthorized" });
+}
 
   if (process.env.AUTO_SYNC_ENABLED !== "true") {
     return res.status(200).json({
