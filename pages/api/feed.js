@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("name, price, description, buy_link, category, image, source_name, created_at")
+      .select("name, price, description, buy_link, image, source_name, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -20,7 +20,6 @@ export default async function handler(req, res) {
       price: product.price || "0",
       description: product.description || "",
       buy_link: product.buy_link || "",
-      category: product.category || "",
       image: product.image || "",
       source_name: product.source_name || ""
     }));
