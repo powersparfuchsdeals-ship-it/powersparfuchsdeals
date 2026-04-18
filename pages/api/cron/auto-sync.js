@@ -78,20 +78,7 @@ const isCron = req.headers["x-vercel-cron"] === "1";
 if (!isCron && (!expectedSecret || token !== expectedSecret)) {
   return res.status(401).json({ ok: false, error: "Unauthorized" });
 }
-// 🔥 DEBUG BLOCK (temporär)
-return res.status(200).json({
-  autoSyncEnabled: process.env.AUTO_SYNC_ENABLED ?? null,
-  feedUrl: process.env.AUTO_SYNC_FEED_URL ?? null,
-  feedType: process.env.AUTO_SYNC_FEED_TYPE ?? null,
-  sourceName: process.env.AUTO_SYNC_SOURCE_NAME ?? null,
-  userId: process.env.AUTO_SYNC_USER_ID ?? null
-});
-  if (process.env.AUTO_SYNC_ENABLED !== "true") {
-    return res.status(200).json({
-      ok: true,
-      skipped: true,
-      reason: "AUTO_SYNC_ENABLED ist nicht true"
-    });
+
   }
 
   const feedUrl = process.env.AUTO_SYNC_FEED_URL;
