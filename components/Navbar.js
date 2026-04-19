@@ -1,41 +1,55 @@
 import { supabase } from "../lib/supabase";
 
 export default function Navbar({ session }) {
-  async function logout() {
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
+  const isAdmin =
+    !!session?.user?.email &&
+    session.user.email.toLowerCase() === adminEmail.toLowerCase();
+
+  async function handleLogout(e) {
+    e.preventDefault();
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   return (
-    <header className="nav-wrap">
-      <div className="shell nav">
-        <a href="/" className="brand">
-          <div className="brand-mark">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div>
-            <div className="brand-name">Orbital-Noir</div>
-            <div className="brand-subline">Premium Tech Curation</div>
-          </div>
-        </a>
+    <header className="navbar-wrap">
+      <nav className="navbar shell">
+        <div className="navbar-left">
+          <a className="brand-link" href="/">
+            Orbital-Noir
+          </a>
+        </div>
 
-        <nav className="nav-links">
-          <a className="nav-link" href="/">Shop</a>
-          {!session ? (
+        <div className="navbar-right">
+          <a className="nav-link" href="/">
+            Shop
+          </a>
+
+          {session ? (
             <>
-              <a className="nav-link" href="/login">Login</a>
-              <a className="nav-cta" href="/register">Registrieren</a>
+              {isAdmin ? (
+                <a className="nav-link nav-btn" href="/admin">
+                  Admin
+                </a>
+              ) : null}
+
+              <a className="nav-link nav-btn" href="#" onClick={handleLogout}>
+                Logout
+              </a>
             </>
           ) : (
             <>
-              <a className="nav-link" href="/admin">Admin</a>
-              <button className="nav-cta" onClick={logout}>Logout</button>
+              <a className="nav-link nav-btn" href="/login">
+                Login
+              </a>
+              <a className="nav-link nav-btn" href="/register">
+                Register
+              </a>
             </>
           )}
-        </nav>
-      </div>
+        </div>
+      </nav>
     </header>
   );
 }
