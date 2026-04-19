@@ -1,6 +1,3 @@
-const [syncLoading, setSyncLoading] = useState(false);
-const [syncResult, setSyncResult] = useState(null);
-const [syncRuns, setSyncRuns] = useState([]);
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { buildSmartProduct, detectVendor, normalizeUrl } from "../lib/smartImport";
@@ -15,7 +12,6 @@ export default function Admin() {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [buyLink, setBuyLink] = useState("");
-  const [category, setCategory] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -28,14 +24,20 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
 
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+  const [syncRuns, setSyncRuns] = useState([]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         window.location.href = "/login";
         return;
       }
-      setSession(data.session);loadSyncRuns(data.session.access_token);
+
+      setSession(data.session);
       loadProducts();
+      loadSyncRuns(data.session.access_token);
     });
   }, []);
 
@@ -46,6 +48,58 @@ export default function Admin() {
       .order("created_at", { ascending: false });
 
     setProducts(data || []);
+  }
+
+  async function loadSyncRuns(accessToken) {
+    if (!accessToken) return;
+
+    const res = await fetch("/api/admin/sync-runs", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.ok) {
+      setSyncRuns(data.runs || []);
+    }
+  }
+
+  async function runManualSync() {
+    if (!session?.access_token) return;
+
+    setSyncLoading(true);
+    setSyncResult(null);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/admin/manual-sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      const data = await res.json();
+      setSyncResult(data);
+
+      if (data.ok) {
+        setMessage(
+          data.skipped
+            ? data.reason || "Sync übersprungen."
+            : `Sync fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
+        );
+        await loadProducts();
+        await loadSyncRuns(session.access_token);
+      } else {
+        setMessage(data.error || "Sync fehlgeschlagen.");
+      }
+    } catch (err) {
+      setMessage("Sync fehlgeschlagen.");
+    } finally {
+      setSyncLoading(false);
+    }
   }
 
   function handleFile(e) {
@@ -60,7 +114,6 @@ export default function Admin() {
     setPrice("");
     setDescription("");
     setBuyLink("");
-    setCategory("");
     setFile(null);
     setPreview(null);
   }
@@ -72,7 +125,6 @@ export default function Admin() {
     setPrice(product.price || "");
     setDescription(product.description || "");
     setBuyLink(product.buy_link || "");
-    setCategory(product.category || "");
     setPreview(product.image || null);
     setFile(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -105,9 +157,7 @@ export default function Admin() {
       name,
       price,
       description,
-      buy_link: normalizeUrl(buyLink),
-      category: category || null,
-      source_name: buyLink ? detectVendor(buyLink) : null
+      buy_link: normalizeUrl(buyLink)
     };
 
     if (imageUrl) payload.image = imageUrl;
@@ -134,15 +184,27 @@ export default function Admin() {
 
   async function runSmartImport() {
     if (!session?.user) return;
-    if (!importLink.trim()) return setMessage("Bitte mindestens einen Anbieter-Link eingeben.");
+    if (!importLink.trim()) {
+      setMessage("Bitte mindestens einen Anbieter-Link eingeben.");
+      return;
+    }
 
-    const product = buildSmartProduct({
+    const built = buildSmartProduct({
       link: importLink,
       title: importTitle,
       price: importPrice
     });
 
-    const { error } = await supabase.from("products").insert([{ ...product, user_id: session.user.id }]);
+    const product = {
+      name: built.name,
+      price: built.price,
+      description: built.description || "",
+      buy_link: built.buy_link,
+      image: built.image || null,
+      user_id: session.user.id
+    };
+
+    const { error } = await supabase.from("products").insert([product]);
     if (error) return setMessage(error.message);
 
     setImportLink("");
@@ -156,16 +218,27 @@ export default function Admin() {
     if (!session?.user) return;
 
     const lines = bulkLinks.split("\n").map((line) => line.trim()).filter(Boolean);
-    if (!lines.length) return setMessage("Bitte Links Zeile für Zeile einfügen.");
+    if (!lines.length) {
+      setMessage("Bitte Links Zeile für Zeile einfügen.");
+      return;
+    }
 
-    const rows = lines.map((link, index) => ({
-      ...buildSmartProduct({
+    const rows = lines.map((link, index) => {
+      const built = buildSmartProduct({
         link,
         title: `${detectVendor(link)} Import ${index + 1}`,
         price: "0"
-      }),
-      user_id: session.user.id
-    }));
+      });
+
+      return {
+        name: built.name,
+        price: built.price,
+        description: built.description || "",
+        buy_link: built.buy_link,
+        image: built.image || null,
+        user_id: session.user.id
+      };
+    });
 
     const { error } = await supabase.from("products").insert(rows);
     if (error) return setMessage(error.message);
@@ -177,65 +250,23 @@ export default function Admin() {
 
   async function runFeedImport() {
     if (!session?.user) return;
-    if (!feedText.trim()) return setMessage("Bitte JSON oder CSV einfügen.");
+    if (!feedText.trim()) {
+      setMessage("Bitte JSON oder CSV einfügen.");
+      return;
+    }
 
     let items = [];
     try {
       items = parseFeedText(feedText);
     } catch (err) {
-      return setMessage("Feed konnte nicht gelesen werden. JSON oder CSV prüfen.");
+      setMessage("Feed konnte nicht gelesen werden. JSON oder CSV prüfen.");
+      return;
     }
-    async function loadSyncRuns(accessToken = session?.access_token) {
-  if (!accessToken) return;
 
-  const res = await fetch("/api/admin/sync-runs", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`
+    if (!items.length) {
+      setMessage("Keine gültigen Feed-Einträge gefunden.");
+      return;
     }
-  });
-
-  const data = await res.json();
-  if (data.ok) {
-    setSyncRuns(data.runs || []);
-  }
-}
-
-async function runManualSync() {
-  if (!session?.access_token) return;
-
-  setSyncLoading(true);
-  setSyncResult(null);
-  setMessage("");
-
-  try {
-    const res = await fetch("/api/admin/manual-sync", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`
-      }
-    });
-
-    const data = await res.json();
-    setSyncResult(data);
-
-    if (data.ok) {
-      setMessage(
-        data.skipped
-          ? data.reason || "Sync übersprungen."
-          : `Sync fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
-      );
-      await loadProducts();
-      await loadSyncRuns();
-    } else {
-      setMessage(data.error || "Sync fehlgeschlagen.");
-    }
-  } catch (err) {
-    setMessage("Sync fehlgeschlagen.");
-  } finally {
-    setSyncLoading(false);
-  }
-}
-    if (!items.length) return setMessage("Keine gültigen Feed-Einträge gefunden.");
 
     try {
       const result = await importFeedRows({
@@ -257,7 +288,9 @@ async function runManualSync() {
 
     if (product.image && product.image.includes("/images/")) {
       const path = product.image.split("/images/")[1];
-      if (path) await supabase.storage.from("images").remove([path]);
+      if (path) {
+        await supabase.storage.from("images").remove([path]);
+      }
     }
 
     const { error } = await supabase.from("products").delete().eq("id", product.id);
@@ -272,7 +305,7 @@ async function runManualSync() {
     if (!q) return products;
 
     return products.filter((p) =>
-      [p.name, p.description, p.buy_link, p.category, p.source_name, String(p.price)]
+      [p.name, p.description, p.buy_link, String(p.price)]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
@@ -293,180 +326,194 @@ async function runManualSync() {
             <h1>Preis-Import mit Feed</h1>
             <p>Links, CSV oder JSON importieren. Preise werden aus dem Feed übernommen.</p>
           </div>
+
           <div className="admin-top-actions-v2 admin-top-actions-v3">
-            <a className="cta-secondary cta-large" href="/">Zum Shop</a>
+            <button
+              className="cta-primary cta-large"
+              onClick={runManualSync}
+              disabled={syncLoading}
+            >
+              {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
+            </button>
+
+            <a className="cta-secondary cta-large" href="/">
+              Zum Shop
+            </a>
           </div>
         </section>
 
         <section className="admin-grid-v2 admin-grid-v3">
-  <div>
-    <div className="panel-v2 panel-v3 admin-form-v2 admin-form-v3">
-      <div className="admin-tabs-v2 admin-tabs-v3">
-        <button className={tab === "manual" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("manual")}>Manuell</button>
-        <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
-        <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
-        <button className={tab === "feed" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("feed")}>Feed Import</button>
-      </div>
-
-      {tab === "manual" && (
-        <>
-          <div className="eyebrow">{editingId ? "Bearbeiten" : "Neues Produkt"}</div>
-          <h2>{editingId ? "Produkt aktualisieren" : "Produkt anlegen"}</h2>
-
-          <input className="field-v2 field-large" placeholder="Produktname" value={name} onChange={(e) => setName(e.target.value)} />
-          <input className="field-v2 field-large" placeholder="Preis" value={price} onChange={(e) => setPrice(e.target.value)} />
-          <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
-          <input className="field-v2 field-large" placeholder="Verkaufslink / Kauf-URL" value={buyLink} onChange={(e) => setBuyLink(e.target.value)} />
-          <input className="field-v2 field-large" placeholder="Kategorie" value={category} onChange={(e) => setCategory(e.target.value)} />
-          <input className="field-v2 field-large" type="file" onChange={handleFile} />
-
-          {preview ? (
-            <div className="preview-v2 preview-large">
-              <img src={preview} alt="Vorschau" />
-            </div>
-          ) : null}
-
-          <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
-            {editingId ? "Änderungen speichern" : "Produkt erstellen"}
-          </button>
-        </>
-      )}
-
-      {tab === "import" && (
-        <>
-          <div className="eyebrow">Einzel-Link Import</div>
-          <h2>Smart Import</h2>
-          <p className="muted-copy">Optionaler Preis wird direkt übernommen.</p>
-
-          <input className="field-v2 field-large" placeholder="Anbieter-Link" value={importLink} onChange={(e) => setImportLink(e.target.value)} />
-          <input className="field-v2 field-large" placeholder="Optionaler Produkttitel" value={importTitle} onChange={(e) => setImportTitle(e.target.value)} />
-          <input className="field-v2 field-large" placeholder="Optionaler Preis" value={importPrice} onChange={(e) => setImportPrice(e.target.value)} />
-
-          <button className="cta-primary full cta-large cta-xl" onClick={runSmartImport}>
-            Smart Import ausführen
-          </button>
-        </>
-      )}
-
-      {tab === "bulk" && (
-        <>
-          <div className="eyebrow">Mehrere Links</div>
-          <h2>Bulk Import</h2>
-
-          <textarea
-            className="field-v2 field-large textarea-v2 textarea-large"
-            placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
-            value={bulkLinks}
-            onChange={(e) => setBulkLinks(e.target.value)}
-          />
-
-          <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
-            Bulk Import starten
-          </button>
-        </>
-      )}
-
-      {tab === "feed" && (
-        <>
-          <div className="eyebrow">CSV oder JSON</div>
-          <h2>Feed Import</h2>
-          <p className="muted-copy">Für automatische Preise brauchst du einen Feed. Nutze JSON oder CSV mit Preis-Spalte.</p>
-
-          <textarea
-            className="field-v2 field-large textarea-v2 textarea-large"
-            placeholder={'JSON Beispiel:\n[{"name":"Produkt A","price":"199","buy_link":"https://amazon.de/...","image":"https://..."}]\n\nCSV Beispiel:\nname,price,buy_link,image,description\nProdukt A,199,https://amazon.de/...,https://...,Top Deal'}
-            value={feedText}
-            onChange={(e) => setFeedText(e.target.value)}
-          />
-
-          <button className="cta-primary full cta-large cta-xl" onClick={runFeedImport}>
-            Feed importieren
-          </button>
-        </>
-      )}
-
-      {message ? <p className="msg-info">{message}</p> : null}
-    </div>
-
-    <div className="panel-v2 panel-v3 sync-panel-v3">
-      <div className="eyebrow">Auto Sync</div>
-      <h2>Letzte Läufe</h2>
-
-      {syncResult ? (
-        <div className="sync-result-v3">
-          <pre>{JSON.stringify(syncResult, null, 2)}</pre>
-        </div>
-      ) : null}
-
-      {syncRuns.length === 0 ? (
-        <p className="muted-copy">Noch keine Sync-Historie vorhanden.</p>
-      ) : (
-        <div className="sync-runs-v3">
-          {syncRuns.map((run) => (
-            <article key={run.id} className="sync-run-card-v3">
-              <strong>{run.source_name || "default"}</strong>
-              <p>Items: {run.item_count ?? 0}</p>
-              <p>{new Date(run.created_at).toLocaleString("de-DE")}</p>
-              <p className="sync-run-key-v3">{run.run_key}</p>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-
-  <div className="panel-v2 panel-v3 admin-list-v2 admin-list-v3">
-    <div className="admin-list-top-v2 admin-list-top-v3">
-      <div>
-        <div className="eyebrow">Archiv</div>
-        <h2>Produkte</h2>
-      </div>
-
-      <input
-        className="field-v2 field-large search-v2"
-        placeholder="Suchen..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-    </div>
-
-    <div className="admin-cards-v2 admin-cards-v3">
-      {filteredProducts.length === 0 ? (
-        <div className="empty-v2">
-          <h3>Keine Produkte gefunden</h3>
-        </div>
-      ) : (
-        filteredProducts.map((product) => (
-          <article key={product.id} className="admin-card-v2 admin-card-v3">
-            <img
-              src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
-              alt={product.name}
-            />
-
-            <div className="admin-card-content-v2 admin-card-content-v3">
-              <div className="admin-card-head-v2 admin-card-head-v3">
-                <h3>{product.name}</h3>
-                <strong>{product.price} €</strong>
+          <div>
+            <div className="panel-v2 panel-v3 admin-form-v2 admin-form-v3">
+              <div className="admin-tabs-v2 admin-tabs-v3">
+                <button className={tab === "manual" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("manual")}>Manuell</button>
+                <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
+                <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
+                <button className={tab === "feed" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("feed")}>Feed Import</button>
               </div>
 
-              <p>{product.description || "Keine Beschreibung hinterlegt."}</p>
+              {tab === "manual" && (
+                <>
+                  <div className="eyebrow">{editingId ? "Bearbeiten" : "Neues Produkt"}</div>
+                  <h2>{editingId ? "Produkt aktualisieren" : "Produkt anlegen"}</h2>
 
-              <p className="link-preview">
-                {product.buy_link ? <>Link: {product.buy_link}</> : null}
-              </p>
+                  <input className="field-v2 field-large" placeholder="Produktname" value={name} onChange={(e) => setName(e.target.value)} />
+                  <input className="field-v2 field-large" placeholder="Preis" value={price} onChange={(e) => setPrice(e.target.value)} />
+                  <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
+                  <input className="field-v2 field-large" placeholder="Verkaufslink / Kauf-URL" value={buyLink} onChange={(e) => setBuyLink(e.target.value)} />
+                  <input className="field-v2 field-large" type="file" onChange={handleFile} />
 
-              <div className="admin-buttons-v2 admin-buttons-v3">
-                <button className="cta-secondary cta-large" onClick={() => editProduct(product)}>
-                  Bearbeiten
-                </button>
-                <button className="danger-v2 danger-large" onClick={() => deleteProduct(product)}>
-                  Löschen
-                </button>
-              </div>
+                  {preview ? (
+                    <div className="preview-v2 preview-large">
+                      <img src={preview} alt="Vorschau" />
+                    </div>
+                  ) : null}
+
+                  <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
+                    {editingId ? "Änderungen speichern" : "Produkt erstellen"}
+                  </button>
+                </>
+              )}
+
+              {tab === "import" && (
+                <>
+                  <div className="eyebrow">Einzel-Link Import</div>
+                  <h2>Smart Import</h2>
+                  <p className="muted-copy">Optionaler Preis wird direkt übernommen.</p>
+
+                  <input className="field-v2 field-large" placeholder="Anbieter-Link" value={importLink} onChange={(e) => setImportLink(e.target.value)} />
+                  <input className="field-v2 field-large" placeholder="Optionaler Produkttitel" value={importTitle} onChange={(e) => setImportTitle(e.target.value)} />
+                  <input className="field-v2 field-large" placeholder="Optionaler Preis" value={importPrice} onChange={(e) => setImportPrice(e.target.value)} />
+
+                  <button className="cta-primary full cta-large cta-xl" onClick={runSmartImport}>
+                    Smart Import ausführen
+                  </button>
+                </>
+              )}
+
+              {tab === "bulk" && (
+                <>
+                  <div className="eyebrow">Mehrere Links</div>
+                  <h2>Bulk Import</h2>
+
+                  <textarea
+                    className="field-v2 field-large textarea-v2 textarea-large"
+                    placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
+                    value={bulkLinks}
+                    onChange={(e) => setBulkLinks(e.target.value)}
+                  />
+
+                  <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
+                    Bulk Import starten
+                  </button>
+                </>
+              )}
+
+              {tab === "feed" && (
+                <>
+                  <div className="eyebrow">CSV oder JSON</div>
+                  <h2>Feed Import</h2>
+                  <p className="muted-copy">Für automatische Preise brauchst du einen Feed. Nutze JSON oder CSV mit Preis-Spalte.</p>
+
+                  <textarea
+                    className="field-v2 field-large textarea-v2 textarea-large"
+                    placeholder={'JSON Beispiel:\n[{"name":"Produkt A","price":"199","buy_link":"https://amazon.de/...","image":"https://..."}]\n\nCSV Beispiel:\nname,price,buy_link,image,description\nProdukt A,199,https://amazon.de/...,https://...,Top Deal'}
+                    value={feedText}
+                    onChange={(e) => setFeedText(e.target.value)}
+                  />
+
+                  <button className="cta-primary full cta-large cta-xl" onClick={runFeedImport}>
+                    Feed importieren
+                  </button>
+                </>
+              )}
+
+              {message ? <p className="msg-info">{message}</p> : null}
             </div>
-          </article>
-        ))
-      )}
+
+            <div className="panel-v2 panel-v3 sync-panel-v3">
+              <div className="eyebrow">Auto Sync</div>
+              <h2>Letzte Läufe</h2>
+
+              {syncResult ? (
+                <div className="sync-result-v3">
+                  <pre>{JSON.stringify(syncResult, null, 2)}</pre>
+                </div>
+              ) : null}
+
+              {syncRuns.length === 0 ? (
+                <p className="muted-copy">Noch keine Sync-Historie vorhanden.</p>
+              ) : (
+                <div className="sync-runs-v3">
+                  {syncRuns.map((run) => (
+                    <article key={run.id} className="sync-run-card-v3">
+                      <strong>{run.source_name || "default"}</strong>
+                      <p>Items: {run.item_count ?? 0}</p>
+                      <p>{new Date(run.created_at).toLocaleString("de-DE")}</p>
+                      <p className="sync-run-key-v3">{run.run_key}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="panel-v2 panel-v3 admin-list-v2 admin-list-v3">
+            <div className="admin-list-top-v2 admin-list-top-v3">
+              <div>
+                <div className="eyebrow">Archiv</div>
+                <h2>Produkte</h2>
+              </div>
+
+              <input
+                className="field-v2 field-large search-v2"
+                placeholder="Suchen..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-cards-v2 admin-cards-v3">
+              {filteredProducts.length === 0 ? (
+                <div className="empty-v2">
+                  <h3>Keine Produkte gefunden</h3>
+                </div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <article key={product.id} className="admin-card-v2 admin-card-v3">
+                    <img
+                      src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
+                      alt={product.name}
+                    />
+
+                    <div className="admin-card-content-v2 admin-card-content-v3">
+                      <div className="admin-card-head-v2 admin-card-head-v3">
+                        <h3>{product.name}</h3>
+                        <strong>{product.price} €</strong>
+                      </div>
+
+                      <p>{product.description || "Keine Beschreibung hinterlegt."}</p>
+
+                      <p className="link-preview">
+                        {product.buy_link ? <>Link: {product.buy_link}</> : null}
+                      </p>
+
+                      <div className="admin-buttons-v2 admin-buttons-v3">
+                        <button className="cta-secondary cta-large" onClick={() => editProduct(product)}>
+                          Bearbeiten
+                        </button>
+                        <button className="danger-v2 danger-large" onClick={() => deleteProduct(product)}>
+                          Löschen
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
-</section>
+  );
+}
