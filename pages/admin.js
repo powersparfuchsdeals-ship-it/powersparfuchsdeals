@@ -30,7 +30,19 @@ export default function Admin() {
   const [syncRuns, setSyncRuns] = useState([]);
 
   useEffect(() => {
-  useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    if (!data.session) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setSession(data.session);
+    loadProducts();
+    loadSyncRuns(data.session.access_token);
+  });
+}, []);
+
+useEffect(() => {
   const saved = localStorage.getItem("admin-theme");
   if (saved) setTheme(saved);
 }, []);
