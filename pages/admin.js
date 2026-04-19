@@ -15,7 +15,8 @@ export default function Admin() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
-
+  const [theme, setTheme] = useState("dark");
+  
   const [importLink, setImportLink] = useState("");
   const [importTitle, setImportTitle] = useState("");
   const [importPrice, setImportPrice] = useState("");
@@ -29,6 +30,16 @@ export default function Admin() {
   const [syncRuns, setSyncRuns] = useState([]);
 
   useEffect(() => {
+  useEffect(() => {
+  const saved = localStorage.getItem("admin-theme");
+  if (saved) setTheme(saved);
+}, []);
+
+useEffect(() => {
+  document.body.classList.remove("dark", "blue", "green");
+  document.body.classList.add(theme);
+  localStorage.setItem("admin-theme", theme);
+}, [theme]);
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         window.location.href = "/login";
@@ -318,7 +329,44 @@ export default function Admin() {
       <div className="backdrop-grid" />
       <div className="backdrop-glow glow-a" />
       <div className="backdrop-glow glow-b" />
+      <div className="admin-top-actions-v2 admin-top-actions-v3">
+  <div className="theme-switcher-v3">
+    <button
+      className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`}
+      onClick={() => setTheme("dark")}
+      type="button"
+    >
+      Schwarz
+    </button>
+    <button
+      className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`}
+      onClick={() => setTheme("blue")}
+      type="button"
+    >
+      Blau
+    </button>
+    <button
+      className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`}
+      onClick={() => setTheme("green")}
+      type="button"
+    >
+      Grün
+    </button>
+  </div>
 
+  <button
+    className="cta-primary cta-large"
+    onClick={runManualSync}
+    disabled={syncLoading}
+    type="button"
+  >
+    {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
+  </button>
+
+  <a className="cta-secondary cta-large" href="/">
+    Zum Shop
+  </a>
+</div>
       <div className="shell admin-shell-v2 admin-shell-v3">
         <section className="admin-header-v2 panel-v2 panel-v3">
           <div>
