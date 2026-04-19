@@ -2,12 +2,15 @@ import { supabase } from "../lib/supabase";
 
 export default function Navbar({ session }) {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
+  const userEmail = session?.user?.email || "";
   const isAdmin =
-    !!session?.user?.email &&
-    session.user.email.toLowerCase() === adminEmail.toLowerCase();
+    userEmail && adminEmail
+      ? userEmail.toLowerCase() === adminEmail.toLowerCase()
+      : false;
 
   async function handleLogout(e) {
     e.preventDefault();
+    if (!supabase) return;
     await supabase.auth.signOut();
     window.location.href = "/";
   }
