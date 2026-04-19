@@ -340,46 +340,7 @@ useEffect(() => {
     <div className="admin-wrap-v2 admin-wrap-v3">
       <div className="backdrop-grid" />
       <div className="backdrop-glow glow-a" />
-      <div className="backdrop-glow glow-b" />
-      <div className="admin-top-actions-v2 admin-top-actions-v3">
-  <div className="theme-switcher-v3">
-    <button
-      className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`}
-      onClick={() => setTheme("dark")}
-      type="button"
-    >
-      Schwarz
-    </button>
-    <button
-      className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`}
-      onClick={() => setTheme("blue")}
-      type="button"
-    >
-      Blau
-    </button>
-    <button
-      className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`}
-      onClick={() => setTheme("green")}
-      type="button"
-    >
-      Grün
-    </button>
-  </div>
-
-  <button
-    className="cta-primary cta-large"
-    onClick={runManualSync}
-    disabled={syncLoading}
-    type="button"
-  >
-    {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
-  </button>
-
-  <a className="cta-secondary cta-large" href="/">
-    Zum Shop
-  </a>
-</div>
-      <div className="shell admin-shell-v2 admin-shell-v3">
+           <div className="shell admin-shell-v2 admin-shell-v3">
         <section className="admin-header-v2 panel-v2 panel-v3">
           <div>
             <div className="eyebrow">Orbital-Noir / Feed Import</div>
