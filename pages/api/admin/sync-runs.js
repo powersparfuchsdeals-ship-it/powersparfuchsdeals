@@ -1,27 +1,13 @@
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
-
-function getBearerToken(req) {
-  const auth = req.headers.authorization || "";
-  const parts = auth.split(" ");
-  if (parts.length === 2 && /^Bearer$/i.test(parts[0])) return parts[1];
-  return null;
-}
+import { requireAdminApi } from "../../../lib/requireAdminApi";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
-  const accessToken = getBearerToken(req);
-  if (!accessToken) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
-
-  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(accessToken);
-
-  if (userError || !userData?.user) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
+  const adminUser = await requireAdminApi(req, res);
+  if (!adminUser) return;
 
   const { data, error } = await supabaseAdmin
     .from("sync_runs")
