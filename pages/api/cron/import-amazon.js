@@ -1,43 +1,71 @@
-import { supabase } from "../../../lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  }
+);
 
 export default async function handler(req, res) {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/amazon-feed?q=iphone`
-    );
+    const partnerTag = process.env.AMAZON_PARTNER_TAG || "";
 
-    const data = await response.json();
-
-    if (!Array.isArray(data)) {
-      return res.status(500).json({ ok: false, error: "Feed ungültig" });
+    if (!partnerTag) {
+      return res.status(500).json({
+        ok: false,
+        error: "AMAZON_PARTNER_TAG fehlt"
+      });
     }
 
-    const products = data.map((item) => ({
-      name: item.name,
-      price: item.price,
-      description: item.description,
-      image: item.image,
-      buy_link: item.buy_link,
+    const response = await fetch(
+      "https://dummyjson.com/products/search?q=iphone"
+    );
+
+    if (!response.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: `Feed-Quelle Fehler: ${response.status}`
+      });
+    }
+
+    const data = await response.json();
+    const sourceProducts = Array.isArray(data.products) ? data.products : [];
+
+    const products = sourceProducts.slice(0, 8).map((item) => ({
+      name: item.title || "Amazon Produkt",
+      price: String(item.price ?? "0"),
+      description: item.description || "",
+      image: item.thumbnail || null,
+      buy_link: `https://www.amazon.de/s?k=${encodeURIComponent(
+        item.title || "iphone"
+      )}&tag=${partnerTag}`,
       clicks: 0
     }));
 
-    // 🔥 Upsert (verhindert Duplikate)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("products")
-      .upsert(products, { onConflict: ["buy_link"] });
+      .upsert(products, { onConflict: "buy_link" });
 
     if (error) {
-      return res.status(500).json({ ok: false, error: error.message });
+      return res.status(500).json({
+        ok: false,
+        error: error.message
+      });
     }
 
     return res.status(200).json({
       ok: true,
       imported: products.length
     });
-  } catch (err) {
+  } catch (error) {
     return res.status(500).json({
       ok: false,
-      error: err.message
+      error: error instanceof Error ? error.message : "Import Fehler"
     });
   }
 }
