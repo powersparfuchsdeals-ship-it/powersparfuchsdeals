@@ -30,6 +30,8 @@ export default function Admin() {
   const [syncRuns, setSyncRuns] = useState([]);
 
   useEffect(() => {
+    if (!supabase) return;
+
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
     supabase.auth.getSession().then(({ data }) => {
@@ -64,6 +66,8 @@ export default function Admin() {
   }, [theme]);
 
   async function loadProducts() {
+    if (!supabase) return;
+
     const { data } = await supabase
       .from("products")
       .select("*")
@@ -150,7 +154,7 @@ export default function Admin() {
   }
 
   async function saveManualProduct() {
-    if (!session?.user) return;
+    if (!supabase || !session?.user) return;
 
     if (!name || !price) {
       setMessage("Bitte Name und Preis ausfüllen.");
@@ -208,7 +212,7 @@ export default function Admin() {
   }
 
   async function runSmartImport() {
-    if (!session?.user) return;
+    if (!supabase || !session?.user) return;
 
     if (!importLink.trim()) {
       setMessage("Bitte mindestens einen Anbieter-Link eingeben.");
@@ -244,7 +248,7 @@ export default function Admin() {
   }
 
   async function runBulkImport() {
-    if (!session?.user) return;
+    if (!supabase || !session?.user) return;
 
     const lines = bulkLinks.split("\n").map((line) => line.trim()).filter(Boolean);
     if (!lines.length) {
@@ -281,7 +285,7 @@ export default function Admin() {
   }
 
   async function runFeedImport() {
-    if (!session?.user) return;
+    if (!supabase || !session?.user) return;
 
     if (!feedText.trim()) {
       setMessage("Bitte JSON oder CSV einfügen.");
@@ -317,6 +321,7 @@ export default function Admin() {
   }
 
   async function deleteProduct(product) {
+    if (!supabase) return;
     if (!window.confirm("Dieses Produkt wirklich löschen?")) return;
 
     if (product.image && product.image.includes("/images/")) {
@@ -347,6 +352,15 @@ export default function Admin() {
     );
   }, [products, search]);
 
+  if (!supabase) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h1>Supabase ENV fehlt</h1>
+        <p>Prüfe NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.</p>
+      </div>
+    );
+  }
+
   if (!session) return null;
 
   return (
@@ -365,41 +379,16 @@ export default function Admin() {
 
           <div className="admin-top-actions-v2 admin-top-actions-v3">
             <div className="theme-switcher-v3">
-              <button
-                className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`}
-                onClick={() => setTheme("dark")}
-                type="button"
-              >
-                Schwarz
-              </button>
-              <button
-                className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`}
-                onClick={() => setTheme("blue")}
-                type="button"
-              >
-                Blau
-              </button>
-              <button
-                className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`}
-                onClick={() => setTheme("green")}
-                type="button"
-              >
-                Grün
-              </button>
+              <button className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`} onClick={() => setTheme("dark")} type="button">Schwarz</button>
+              <button className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`} onClick={() => setTheme("blue")} type="button">Blau</button>
+              <button className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`} onClick={() => setTheme("green")} type="button">Grün</button>
             </div>
 
-            <button
-              className="cta-primary cta-large"
-              onClick={runManualSync}
-              disabled={syncLoading}
-              type="button"
-            >
+            <button className="cta-primary cta-large" onClick={runManualSync} disabled={syncLoading} type="button">
               {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
             </button>
 
-            <a className="cta-secondary cta-large" href="/">
-              Zum Shop
-            </a>
+            <a className="cta-secondary cta-large" href="/">Zum Shop</a>
           </div>
         </section>
 
@@ -488,12 +477,7 @@ export default function Admin() {
                   <div className="eyebrow">Mehrere Links</div>
                   <h2>Bulk Import</h2>
 
-                  <textarea
-                    className="field-v2 field-large textarea-v2 textarea-large"
-                    placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
-                    value={bulkLinks}
-                    onChange={(e) => setBulkLinks(e.target.value)}
-                  />
+                  <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder={"https://amazon.de/...\nhttps://otto.de/..."} value={bulkLinks} onChange={(e) => setBulkLinks(e.target.value)} />
 
                   <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
                     Bulk Import starten
@@ -557,12 +541,7 @@ export default function Admin() {
                 <h2>Produkte</h2>
               </div>
 
-              <input
-                className="field-v2 field-large search-v2"
-                placeholder="Suchen..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <input className="field-v2 field-large search-v2" placeholder="Suchen..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
 
             <div className="admin-cards-v2 admin-cards-v3">
@@ -573,10 +552,7 @@ export default function Admin() {
               ) : (
                 filteredProducts.map((product) => (
                   <article key={product.id} className="admin-card-v2 admin-card-v3">
-                    <img
-                      src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
-                      alt={product.name}
-                    />
+                    <img src={product.image || "https://via.placeholder.com/800x600?text=Produkt"} alt={product.name} />
 
                     <div className="admin-card-content-v2 admin-card-content-v3">
                       <div className="admin-card-head-v2 admin-card-head-v3">
