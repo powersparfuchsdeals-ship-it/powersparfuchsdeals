@@ -166,3 +166,56 @@ body {
   opacity: 0.4;
   filter: blur(120px);
 }
+body.dark {
+  background: #111827;
+  color: #f3f4f6;
+}
+
+body.blue {
+  background: #0f172a;
+  color: #e0f2fe;
+}
+
+body.green {
+  background: #052e16;
+  color: #d1fae5;
+}
+
+.admin-tools-v3 {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.stats-grid-v3 {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  flex: 1;
+  min-width: 180px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 20px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.stat-box h3 {
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.theme-switcher-v3 {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.theme-active-v3 {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
