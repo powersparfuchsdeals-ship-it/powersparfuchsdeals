@@ -126,10 +126,11 @@ export default function Admin() {
   }
 
   function handleFile(e) {
-    const f = e.target.files?.[0] || null;
-    setFile(f);
-    if (f) setPreview(URL.createObjectURL(f));
-  }
+  const f = e.target.files?.[0] || null;
+  setFile(f);
+  if (f) setPreview(URL.createObjectURL(f));
+  else setPreview(null);
+}
 
   function resetManualForm() {
     setEditingId(null);
@@ -445,14 +446,16 @@ export default function Admin() {
                   <input className="field-v2 field-large" type="file" onChange={handleFile} />
 
                   {preview ? (
-                    <div className="preview-v2 preview-large">
-                      <img src={preview} alt="Vorschau" />
-                    </div>
-                  ) : null}
+  <div className="preview-v2 preview-large">
+    <img src={preview} alt="Vorschau" />
+  </div>
+) : null}
 
-                  <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
-                    {editingId ? "Änderungen speichern" : "Produkt erstellen"}
-                  </button>
+<div style={{ marginTop: "12px" }}>
+  <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
+    {editingId ? "Änderungen speichern" : "Produkt erstellen"}
+  </button>
+</div>
                 </>
               )}
 
