@@ -1,4 +1,3 @@
-// pages/api/admin/sync-runs.js
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 function getBearerToken(req) {
