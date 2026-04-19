@@ -34,7 +34,7 @@ export default function Admin() {
         window.location.href = "/login";
         return;
       }
-      setSession(data.session);
+      setSession(data.session);loadSyncRuns(data.session.access_token);
       loadProducts();
     });
   }, []);
@@ -185,7 +185,56 @@ export default function Admin() {
     } catch (err) {
       return setMessage("Feed konnte nicht gelesen werden. JSON oder CSV prüfen.");
     }
+    async function loadSyncRuns(accessToken = session?.access_token) {
+  if (!accessToken) return;
 
+  const res = await fetch("/api/admin/sync-runs", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  const data = await res.json();
+  if (data.ok) {
+    setSyncRuns(data.runs || []);
+  }
+}
+
+async function runManualSync() {
+  if (!session?.access_token) return;
+
+  setSyncLoading(true);
+  setSyncResult(null);
+  setMessage("");
+
+  try {
+    const res = await fetch("/api/admin/manual-sync", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+
+    const data = await res.json();
+    setSyncResult(data);
+
+    if (data.ok) {
+      setMessage(
+        data.skipped
+          ? data.reason || "Sync übersprungen."
+          : `Sync fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
+      );
+      await loadProducts();
+      await loadSyncRuns();
+    } else {
+      setMessage(data.error || "Sync fehlgeschlagen.");
+    }
+  } catch (err) {
+    setMessage("Sync fehlgeschlagen.");
+  } finally {
+    setSyncLoading(false);
+  }
+}
     if (!items.length) return setMessage("Keine gültigen Feed-Einträge gefunden.");
 
     try {
@@ -250,8 +299,16 @@ export default function Admin() {
         </section>
 
         <section className="admin-grid-v2 admin-grid-v3">
-          <div className="panel-v2 panel-v3 admin-form-v2 admin-form-v3">
-            <div className="admin-tabs-v2 admin-tabs-v3">
+          <div className="admin-top-actions-v2 admin-top-actions-v3">
+  <button
+    className="cta-primary cta-large"
+    onClick={runManualSync}
+    disabled={syncLoading}
+  >
+    {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
+  </button>
+  <a className="cta-secondary cta-large" href="/">Zum Shop</a>
+</div>
               <button className={tab === "manual" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("manual")}>Manuell</button>
               <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
               <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
