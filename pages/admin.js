@@ -299,161 +299,174 @@ async function runManualSync() {
         </section>
 
         <section className="admin-grid-v2 admin-grid-v3">
-          <div className="admin-top-actions-v2 admin-top-actions-v3">
-  <button
-    className="cta-primary cta-large"
-    onClick={runManualSync}
-    disabled={syncLoading}
-  >
-    {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
-  </button>
-  <a className="cta-secondary cta-large" href="/">Zum Shop</a>
-</div>
-              <button className={tab === "manual" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("manual")}>Manuell</button>
-              <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
-              <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
-              <button className={tab === "feed" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("feed")}>Feed Import</button>
+  <div>
+    <div className="panel-v2 panel-v3 admin-form-v2 admin-form-v3">
+      <div className="admin-tabs-v2 admin-tabs-v3">
+        <button className={tab === "manual" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("manual")}>Manuell</button>
+        <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
+        <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
+        <button className={tab === "feed" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("feed")}>Feed Import</button>
+      </div>
+
+      {tab === "manual" && (
+        <>
+          <div className="eyebrow">{editingId ? "Bearbeiten" : "Neues Produkt"}</div>
+          <h2>{editingId ? "Produkt aktualisieren" : "Produkt anlegen"}</h2>
+
+          <input className="field-v2 field-large" placeholder="Produktname" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="field-v2 field-large" placeholder="Preis" value={price} onChange={(e) => setPrice(e.target.value)} />
+          <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input className="field-v2 field-large" placeholder="Verkaufslink / Kauf-URL" value={buyLink} onChange={(e) => setBuyLink(e.target.value)} />
+          <input className="field-v2 field-large" placeholder="Kategorie" value={category} onChange={(e) => setCategory(e.target.value)} />
+          <input className="field-v2 field-large" type="file" onChange={handleFile} />
+
+          {preview ? (
+            <div className="preview-v2 preview-large">
+              <img src={preview} alt="Vorschau" />
             </div>
+          ) : null}
 
-            {tab === "manual" && (
-              <>
-                <div className="eyebrow">{editingId ? "Bearbeiten" : "Neues Produkt"}</div>
-                <h2>{editingId ? "Produkt aktualisieren" : "Produkt anlegen"}</h2>
+          <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
+            {editingId ? "Änderungen speichern" : "Produkt erstellen"}
+          </button>
+        </>
+      )}
 
-                <input className="field-v2 field-large" placeholder="Produktname" value={name} onChange={(e) => setName(e.target.value)} />
-                <input className="field-v2 field-large" placeholder="Preis" value={price} onChange={(e) => setPrice(e.target.value)} />
-                <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
-                <input className="field-v2 field-large" placeholder="Verkaufslink / Kauf-URL" value={buyLink} onChange={(e) => setBuyLink(e.target.value)} />
-                <input className="field-v2 field-large" placeholder="Kategorie" value={category} onChange={(e) => setCategory(e.target.value)} />
-                <input className="field-v2 field-large" type="file" onChange={handleFile} />
+      {tab === "import" && (
+        <>
+          <div className="eyebrow">Einzel-Link Import</div>
+          <h2>Smart Import</h2>
+          <p className="muted-copy">Optionaler Preis wird direkt übernommen.</p>
 
-                {preview ? (
-                  <div className="preview-v2 preview-large">
-                    <img src={preview} alt="Vorschau" />
-                  </div>
-                ) : null}
+          <input className="field-v2 field-large" placeholder="Anbieter-Link" value={importLink} onChange={(e) => setImportLink(e.target.value)} />
+          <input className="field-v2 field-large" placeholder="Optionaler Produkttitel" value={importTitle} onChange={(e) => setImportTitle(e.target.value)} />
+          <input className="field-v2 field-large" placeholder="Optionaler Preis" value={importPrice} onChange={(e) => setImportPrice(e.target.value)} />
 
-                <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
-                  {editingId ? "Änderungen speichern" : "Produkt erstellen"}
-                </button>
-              </>
-            )}
+          <button className="cta-primary full cta-large cta-xl" onClick={runSmartImport}>
+            Smart Import ausführen
+          </button>
+        </>
+      )}
 
-            {tab === "import" && (
-              <>
-                <div className="eyebrow">Einzel-Link Import</div>
-                <h2>Smart Import</h2>
-                <p className="muted-copy">Optionaler Preis wird direkt übernommen.</p>
+      {tab === "bulk" && (
+        <>
+          <div className="eyebrow">Mehrere Links</div>
+          <h2>Bulk Import</h2>
 
-                <input className="field-v2 field-large" placeholder="Anbieter-Link" value={importLink} onChange={(e) => setImportLink(e.target.value)} />
-                <input className="field-v2 field-large" placeholder="Optionaler Produkttitel" value={importTitle} onChange={(e) => setImportTitle(e.target.value)} />
-                <input className="field-v2 field-large" placeholder="Optionaler Preis" value={importPrice} onChange={(e) => setImportPrice(e.target.value)} />
+          <textarea
+            className="field-v2 field-large textarea-v2 textarea-large"
+            placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
+            value={bulkLinks}
+            onChange={(e) => setBulkLinks(e.target.value)}
+          />
 
-                <button className="cta-primary full cta-large cta-xl" onClick={runSmartImport}>
-                  Smart Import ausführen
-                </button>
-              </>
-            )}
+          <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
+            Bulk Import starten
+          </button>
+        </>
+      )}
 
-            {tab === "bulk" && (
-              <>
-                <div className="eyebrow">Mehrere Links</div>
-                <h2>Bulk Import</h2>
+      {tab === "feed" && (
+        <>
+          <div className="eyebrow">CSV oder JSON</div>
+          <h2>Feed Import</h2>
+          <p className="muted-copy">Für automatische Preise brauchst du einen Feed. Nutze JSON oder CSV mit Preis-Spalte.</p>
 
-                <textarea
-                  className="field-v2 field-large textarea-v2 textarea-large"
-                  placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
-                  value={bulkLinks}
-                  onChange={(e) => setBulkLinks(e.target.value)}
-                />
+          <textarea
+            className="field-v2 field-large textarea-v2 textarea-large"
+            placeholder={'JSON Beispiel:\n[{"name":"Produkt A","price":"199","buy_link":"https://amazon.de/...","image":"https://..."}]\n\nCSV Beispiel:\nname,price,buy_link,image,description\nProdukt A,199,https://amazon.de/...,https://...,Top Deal'}
+            value={feedText}
+            onChange={(e) => setFeedText(e.target.value)}
+          />
 
-                <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
-                  Bulk Import starten
-                </button>
-              </>
-            )}
+          <button className="cta-primary full cta-large cta-xl" onClick={runFeedImport}>
+            Feed importieren
+          </button>
+        </>
+      )}
 
-            {tab === "feed" && (
-              <>
-                <div className="eyebrow">CSV oder JSON</div>
-                <h2>Feed Import</h2>
-                <p className="muted-copy">Für automatische Preise brauchst du einen Feed. Nutze JSON oder CSV mit Preis-Spalte.</p>
+      {message ? <p className="msg-info">{message}</p> : null}
+    </div>
 
-                <textarea
-                  className="field-v2 field-large textarea-v2 textarea-large"
-                  placeholder={'JSON Beispiel:\n[{"name":"Produkt A","price":"199","buy_link":"https://amazon.de/...","image":"https://...","category":"Audio"}]\n\nCSV Beispiel:\nname,price,buy_link,image,category,description,vendor\nProdukt A,199,https://amazon.de/...,https://...,Audio,Top Deal,Amazon'}
-                  value={feedText}
-                  onChange={(e) => setFeedText(e.target.value)}
-                />
+    <div className="panel-v2 panel-v3 sync-panel-v3">
+      <div className="eyebrow">Auto Sync</div>
+      <h2>Letzte Läufe</h2>
 
-                <button className="cta-primary full cta-large cta-xl" onClick={runFeedImport}>
-                  Feed importieren
-                </button>
-              </>
-            )}
+      {syncResult ? (
+        <div className="sync-result-v3">
+          <pre>{JSON.stringify(syncResult, null, 2)}</pre>
+        </div>
+      ) : null}
 
-            {message ? <p className="msg-info">{message}</p> : null}
-          </div>
+      {syncRuns.length === 0 ? (
+        <p className="muted-copy">Noch keine Sync-Historie vorhanden.</p>
+      ) : (
+        <div className="sync-runs-v3">
+          {syncRuns.map((run) => (
+            <article key={run.id} className="sync-run-card-v3">
+              <strong>{run.source_name || "default"}</strong>
+              <p>Items: {run.item_count ?? 0}</p>
+              <p>{new Date(run.created_at).toLocaleString("de-DE")}</p>
+              <p className="sync-run-key-v3">{run.run_key}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
 
-          <div className="panel-v2 panel-v3 admin-list-v2 admin-list-v3">
-            <div className="admin-list-top-v2 admin-list-top-v3">
-              <div>
-                <div className="eyebrow">Archiv</div>
-                <h2>Produkte</h2>
+  <div className="panel-v2 panel-v3 admin-list-v2 admin-list-v3">
+    <div className="admin-list-top-v2 admin-list-top-v3">
+      <div>
+        <div className="eyebrow">Archiv</div>
+        <h2>Produkte</h2>
+      </div>
+
+      <input
+        className="field-v2 field-large search-v2"
+        placeholder="Suchen..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+    </div>
+
+    <div className="admin-cards-v2 admin-cards-v3">
+      {filteredProducts.length === 0 ? (
+        <div className="empty-v2">
+          <h3>Keine Produkte gefunden</h3>
+        </div>
+      ) : (
+        filteredProducts.map((product) => (
+          <article key={product.id} className="admin-card-v2 admin-card-v3">
+            <img
+              src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
+              alt={product.name}
+            />
+
+            <div className="admin-card-content-v2 admin-card-content-v3">
+              <div className="admin-card-head-v2 admin-card-head-v3">
+                <h3>{product.name}</h3>
+                <strong>{product.price} €</strong>
               </div>
 
-              <input
-                className="field-v2 field-large search-v2"
-                placeholder="Suchen..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <p>{product.description || "Keine Beschreibung hinterlegt."}</p>
+
+              <p className="link-preview">
+                {product.buy_link ? <>Link: {product.buy_link}</> : null}
+              </p>
+
+              <div className="admin-buttons-v2 admin-buttons-v3">
+                <button className="cta-secondary cta-large" onClick={() => editProduct(product)}>
+                  Bearbeiten
+                </button>
+                <button className="danger-v2 danger-large" onClick={() => deleteProduct(product)}>
+                  Löschen
+                </button>
+              </div>
             </div>
-
-            <div className="admin-cards-v2 admin-cards-v3">
-              {filteredProducts.length === 0 ? (
-                <div className="empty-v2">
-                  <h3>Keine Produkte gefunden</h3>
-                </div>
-              ) : (
-                filteredProducts.map((product) => (
-                  <article key={product.id} className="admin-card-v2 admin-card-v3">
-                    <img
-                      src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
-                      alt={product.name}
-                    />
-
-                    <div className="admin-card-content-v2 admin-card-content-v3">
-                      <div className="admin-card-head-v2 admin-card-head-v3">
-                        <h3>{product.name}</h3>
-                        <strong>{product.price} €</strong>
-                      </div>
-
-                      <p>{product.description || "Keine Beschreibung hinterlegt."}</p>
-
-                      <p className="link-preview">
-                        {product.source_name ? <><strong>Anbieter:</strong> {product.source_name}<br /></> : null}
-                        {product.category ? <><strong>Kategorie:</strong> {product.category}<br /></> : null}
-                        {product.buy_link ? <>Link: {product.buy_link}</> : null}
-                      </p>
-
-                      <div className="admin-buttons-v2 admin-buttons-v3">
-                        <button className="cta-secondary cta-large" onClick={() => editProduct(product)}>
-                          Bearbeiten
-                        </button>
-                        <button className="danger-v2 danger-large" onClick={() => deleteProduct(product)}>
-                          Löschen
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-      </div>
+          </article>
+        ))
+      )}
     </div>
-  );
-}
-
+  </div>
+</section>
