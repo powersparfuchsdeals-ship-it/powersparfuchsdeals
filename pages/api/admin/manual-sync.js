@@ -1,5 +1,5 @@
-import { supabaseAdmin } from "../../../lib/supabaseAdmin";
-import { runAutoSync } from "../../../lib/runAutoSync";
+import { supabaseAdmin } from "./supabaseAdmin";
+import { isAdminEmail } from "./isAdmin";
 
 function getBearerToken(req) {
   const auth = req.headers.authorization || "";
@@ -8,29 +8,26 @@ function getBearerToken(req) {
   return null;
 }
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
-  }
-
+export async function requireAdminApi(req, res) {
   const accessToken = getBearerToken(req);
+
   if (!accessToken) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
+    res.status(401).json({ ok: false, error: "Unauthorized" });
+    return null;
   }
 
   const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
 
   if (error || !data?.user) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
+    res.status(401).json({ ok: false, error: "Unauthorized" });
+    return null;
   }
 
-  try {
-    const result = await runAutoSync();
-    return res.status(200).json(result);
-  } catch (err) {
-    return res.status(500).json({
-      ok: false,
-      error: err instanceof Error ? err.message : "Unknown error"
-    });
+  const email = data.user.email || "";
+  if (!isAdminEmail(email)) {
+    res.status(403).json({ ok: false, error: "Forbidden" });
+    return null;
   }
+
+  return data.user;
 }
