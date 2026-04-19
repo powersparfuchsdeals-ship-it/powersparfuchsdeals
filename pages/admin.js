@@ -30,10 +30,28 @@ export default function Admin() {
   const [syncRuns, setSyncRuns] = useState([]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        window.location.href = "/login";
-        return;
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
+
+  supabase.auth.getSession().then(({ data }) => {
+    if (!data.session) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const email = data.session.user?.email || "";
+    const isAdmin =
+      email.toLowerCase() === adminEmail.toLowerCase();
+
+    if (!isAdmin) {
+      window.location.href = "/";
+      return;
+    }
+
+    setSession(data.session);
+    loadProducts();
+    loadSyncRuns(data.session.access_token);
+  });
+}, []);
       }
 
       setSession(data.session);
