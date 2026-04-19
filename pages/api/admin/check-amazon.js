@@ -59,25 +59,3 @@ export default async function handler(req, res) {
     });
   }
 }
-Danach noch prüfen
-
-Diese ENV-Variablen müssen gesetzt sein:
-
-AMAZON_PARTNER_TAG=140570-21
-NEXT_PUBLIC_SITE_URL=https://orbital-noir.com
-NEXT_PUBLIC_ADMIN_EMAIL=deine-admin-mail
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
-Dann testen
-Amazon Feed direkt:
-https://orbital-noir.com/api/amazon-feed?q=kopfhörer
-Amazon Check im Admin:
-
-Im Admin auf den Amazon-Tab gehen und auf:
-
-Amazon Setup prüfen
-
-klicken.
-
-Wenn du willst, gebe ich dir als Nächstes noch die komplette vercel.json mit Auto-Sync für Amazon.
