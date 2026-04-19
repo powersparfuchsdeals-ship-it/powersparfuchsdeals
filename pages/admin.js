@@ -25,6 +25,9 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
 
+  const [amazonQuery, setAmazonQuery] = useState("");
+  const [amazonLoading, setAmazonLoading] = useState(false);
+
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [syncRuns, setSyncRuns] = useState([]);
@@ -126,11 +129,11 @@ export default function Admin() {
   }
 
   function handleFile(e) {
-  const f = e.target.files?.[0] || null;
-  setFile(f);
-  if (f) setPreview(URL.createObjectURL(f));
-  else setPreview(null);
-}
+    const f = e.target.files?.[0] || null;
+    setFile(f);
+    if (f) setPreview(URL.createObjectURL(f));
+    else setPreview(null);
+  }
 
   function resetManualForm() {
     setEditingId(null);
@@ -321,6 +324,49 @@ export default function Admin() {
     }
   }
 
+  async function runAmazonImport() {
+    if (!supabase || !session?.user) return;
+
+    if (!amazonQuery.trim()) {
+      setMessage("Bitte ein Amazon-Suchwort eingeben.");
+      return;
+    }
+
+    setAmazonLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(`/api/amazon-feed?q=${encodeURIComponent(amazonQuery)}`);
+      const items = await res.json();
+
+      if (!res.ok) {
+        setMessage(items.error || "Amazon-Import fehlgeschlagen.");
+        return;
+      }
+
+      if (!Array.isArray(items) || !items.length) {
+        setMessage("Keine Amazon-Produkte gefunden.");
+        return;
+      }
+
+      const result = await importFeedRows({
+        supabase,
+        items,
+        userId: session.user.id
+      });
+
+      setMessage(
+        `Amazon Import fertig: ${result.created} neu, ${result.updated} aktualisiert, ${result.skipped} übersprungen.`
+      );
+
+      await loadProducts();
+    } catch {
+      setMessage("Amazon-Import fehlgeschlagen.");
+    } finally {
+      setAmazonLoading(false);
+    }
+  }
+
   async function deleteProduct(product) {
     if (!supabase) return;
     if (!window.confirm("Dieses Produkt wirklich löschen?")) return;
@@ -380,16 +426,24 @@ export default function Admin() {
 
           <div className="admin-top-actions-v2 admin-top-actions-v3">
             <div className="theme-switcher-v3">
-              <button className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`} onClick={() => setTheme("dark")} type="button">Schwarz</button>
-              <button className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`} onClick={() => setTheme("blue")} type="button">Blau</button>
-              <button className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`} onClick={() => setTheme("green")} type="button">Grün</button>
+              <button className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`} onClick={() => setTheme("dark")} type="button">
+                Schwarz
+              </button>
+              <button className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`} onClick={() => setTheme("blue")} type="button">
+                Blau
+              </button>
+              <button className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`} onClick={() => setTheme("green")} type="button">
+                Grün
+              </button>
             </div>
 
             <button className="cta-primary cta-large" onClick={runManualSync} disabled={syncLoading} type="button">
               {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
             </button>
 
-            <a className="cta-secondary cta-large" href="/">Zum Shop</a>
+            <a className="cta-secondary cta-large" href="/">
+              Zum Shop
+            </a>
           </div>
         </section>
 
@@ -432,6 +486,7 @@ export default function Admin() {
                 <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
                 <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
                 <button className={tab === "feed" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("feed")}>Feed Import</button>
+                <button className={tab === "amazon" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("amazon")}>Amazon</button>
               </div>
 
               {tab === "manual" && (
@@ -446,16 +501,16 @@ export default function Admin() {
                   <input className="field-v2 field-large" type="file" onChange={handleFile} />
 
                   {preview ? (
-  <div className="preview-v2 preview-large">
-    <img src={preview} alt="Vorschau" />
-  </div>
-) : null}
+                    <div className="preview-v2 preview-large">
+                      <img src={preview} alt="Vorschau" />
+                    </div>
+                  ) : null}
 
-<div style={{ marginTop: "12px" }}>
-  <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
-    {editingId ? "Änderungen speichern" : "Produkt erstellen"}
-  </button>
-</div>
+                  <div style={{ marginTop: "12px" }}>
+                    <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
+                      {editingId ? "Änderungen speichern" : "Produkt erstellen"}
+                    </button>
+                  </div>
                 </>
               )}
 
@@ -480,7 +535,12 @@ export default function Admin() {
                   <div className="eyebrow">Mehrere Links</div>
                   <h2>Bulk Import</h2>
 
-                  <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder={"https://amazon.de/...\nhttps://otto.de/..."} value={bulkLinks} onChange={(e) => setBulkLinks(e.target.value)} />
+                  <textarea
+                    className="field-v2 field-large textarea-v2 textarea-large"
+                    placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
+                    value={bulkLinks}
+                    onChange={(e) => setBulkLinks(e.target.value)}
+                  />
 
                   <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
                     Bulk Import starten
@@ -503,6 +563,32 @@ export default function Admin() {
 
                   <button className="cta-primary full cta-large cta-xl" onClick={runFeedImport}>
                     Feed importieren
+                  </button>
+                </>
+              )}
+
+              {tab === "amazon" && (
+                <>
+                  <div className="eyebrow">Amazon Creators API</div>
+                  <h2>Amazon Import</h2>
+                  <p className="muted-copy">
+                    Suche Amazon-Produkte per Keyword und importiere sie direkt in deinen Shop.
+                  </p>
+
+                  <input
+                    className="field-v2 field-large"
+                    placeholder="z. B. Kopfhörer, Monitor, Gaming Maus"
+                    value={amazonQuery}
+                    onChange={(e) => setAmazonQuery(e.target.value)}
+                  />
+
+                  <button
+                    className="cta-primary full cta-large cta-xl"
+                    onClick={runAmazonImport}
+                    disabled={amazonLoading}
+                    type="button"
+                  >
+                    {amazonLoading ? "Amazon lädt..." : "Amazon Produkte importieren"}
                   </button>
                 </>
               )}
@@ -544,7 +630,12 @@ export default function Admin() {
                 <h2>Produkte</h2>
               </div>
 
-              <input className="field-v2 field-large search-v2" placeholder="Suchen..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input
+                className="field-v2 field-large search-v2"
+                placeholder="Suchen..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
 
             <div className="admin-cards-v2 admin-cards-v3">
@@ -555,7 +646,10 @@ export default function Admin() {
               ) : (
                 filteredProducts.map((product) => (
                   <article key={product.id} className="admin-card-v2 admin-card-v3">
-                    <img src={product.image || "https://via.placeholder.com/800x600?text=Produkt"} alt={product.name} />
+                    <img
+                      src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
+                      alt={product.name}
+                    />
 
                     <div className="admin-card-content-v2 admin-card-content-v3">
                       <div className="admin-card-head-v2 admin-card-head-v3">
