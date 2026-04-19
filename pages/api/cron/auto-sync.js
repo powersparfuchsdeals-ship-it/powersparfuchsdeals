@@ -1,4 +1,3 @@
-// pages/api/cron/auto-sync.js
 import { runAutoSync } from "../../../lib/runAutoSync";
 
 function getBearerToken(req) {
