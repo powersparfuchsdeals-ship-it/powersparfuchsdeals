@@ -1,42 +1,48 @@
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
+  }
+
   try {
-    const keyword = req.query.q || "tech";
+    const keyword = String(req.query.q || "technik").trim();
+    const partnerTag = process.env.AMAZON_PARTNER_TAG || "";
 
-    // ⚠️ TEMPORÄR: Demo-Daten (funktioniert sofort!)
-    const demoProducts = [
-      {
-        title: `Amazon ${keyword} Produkt 1`,
-        price: "49.99",
-        image: "https://via.placeholder.com/800x600?text=Amazon+1",
-        url: "https://www.amazon.de/dp/B000000001"
-      },
-      {
-        title: `Amazon ${keyword} Produkt 2`,
-        price: "89.99",
-        image: "https://via.placeholder.com/800x600?text=Amazon+2",
-        url: "https://www.amazon.de/dp/B000000002"
-      },
-      {
-        title: `Amazon ${keyword} Produkt 3`,
-        price: "129.99",
-        image: "https://via.placeholder.com/800x600?text=Amazon+3",
-        url: "https://www.amazon.de/dp/B000000003"
-      }
-    ];
+    if (!partnerTag) {
+      return res.status(500).json({
+        ok: false,
+        error: "AMAZON_PARTNER_TAG fehlt"
+      });
+    }
 
-    const partnerTag = process.env.AMAZON_PARTNER_TAG || "dein-tag-21";
+    const response = await fetch(
+      `https://dummyjson.com/products/search?q=${encodeURIComponent(keyword)}`,
+      { cache: "no-store" }
+    );
 
-    // 🔥 Mapping auf dein Shop-System
-    const items = demoProducts.map((item) => ({
-      name: item.title,
-      price: item.price,
-      description: `Top Deal für ${keyword}`,
-      buy_link: `${item.url}?tag=${partnerTag}`,
-      image: item.image
+    if (!response.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: `Produktquelle Fehler: ${response.status}`
+      });
+    }
+
+    const data = await response.json();
+
+    const items = (data.products || []).slice(0, 8).map((p) => ({
+      name: p.title || "Amazon Produkt",
+      price: String(p.price ?? "0"),
+      description: p.description || "",
+      buy_link: `https://www.amazon.de/s?k=${encodeURIComponent(
+        p.title || keyword
+      )}&tag=${partnerTag}`,
+      image: p.thumbnail || null
     }));
 
-    res.status(200).json(items);
-  } catch (err) {
-    res.status(500).json({ error: "Amazon Feed Fehler" });
+    return res.status(200).json(items);
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "Amazon Feed Fehler"
+    });
   }
 }
