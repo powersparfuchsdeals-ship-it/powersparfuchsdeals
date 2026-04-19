@@ -1,4 +1,3 @@
-// pages/api/admin/manual-sync.js
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { runAutoSync } from "../../../lib/runAutoSync";
 
