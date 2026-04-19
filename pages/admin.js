@@ -1,3 +1,6 @@
+const [syncLoading, setSyncLoading] = useState(false);
+const [syncResult, setSyncResult] = useState(null);
+const [syncRuns, setSyncRuns] = useState([]);
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { buildSmartProduct, detectVendor, normalizeUrl } from "../lib/smartImport";
