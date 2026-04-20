@@ -2,6 +2,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
 
+const BACKGROUND_COLORS = [
+  "#0f0f10",
+  "#151922",
+  "#1b1f3b",
+  "#102a43",
+  "#1f2937",
+  "#2d1b36",
+  "#0f3d2e",
+  "#3b2f1f",
+  "#3a3a3a",
+  "#1e293b"
+];
+
 function ProductCard({ p, trackClick }) {
   return (
     <article className="shop-card">
@@ -53,9 +66,21 @@ function ProductCard({ p, trackClick }) {
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [session, setSession] = useState(null);
+  const [backgroundColor, setBackgroundColor] = useState(BACKGROUND_COLORS[0]);
+  const [nextColor, setNextColor] = useState(BACKGROUND_COLORS[1]);
+  const [autoMode, setAutoMode] = useState(true);
 
   useEffect(() => {
     loadProducts();
+
+    const savedColor = localStorage.getItem("orbital-noir-bg");
+    if (savedColor && BACKGROUND_COLORS.includes(savedColor)) {
+      const index = BACKGROUND_COLORS.indexOf(savedColor);
+      const nextIndex = (index + 1) % BACKGROUND_COLORS.length;
+
+      setBackgroundColor(savedColor);
+      setNextColor(BACKGROUND_COLORS[nextIndex]);
+    }
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
@@ -65,8 +90,35 @@ export default function Home() {
       setSession(session ?? null);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    document.body.style.background = `linear-gradient(135deg, ${backgroundColor}, ${nextColor})`;
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.transition = "background 4s ease-in-out";
+
+    localStorage.setItem("orbital-noir-bg", backgroundColor);
+  }, [backgroundColor, nextColor]);
+
+  useEffect(() => {
+    if (!autoMode) return;
+
+    const interval = setInterval(() => {
+      setBackgroundColor((prev) => {
+        const currentIndex = BACKGROUND_COLORS.indexOf(prev);
+        const nextIndex = (currentIndex + 1) % BACKGROUND_COLORS.length;
+        const afterNextIndex = (nextIndex + 1) % BACKGROUND_COLORS.length;
+
+        setNextColor(BACKGROUND_COLORS[afterNextIndex]);
+        return BACKGROUND_COLORS[nextIndex];
+      });
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [autoMode]);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -107,8 +159,61 @@ export default function Home() {
               Login, Register und einem visuellen System fern vom Standard-Shop-Look.
             </p>
 
-            <div className="hero-actions">
-              <a className="ghost-btn" href="/register">Konto erstellen</a>
+            <div className="hero-actions" style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <a className="ghost-btn" href="/register">
+                Konto erstellen
+              </a>
+            </div>
+
+            <div style={{ marginTop: "22px" }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  opacity: 0.82,
+                  marginBottom: "10px"
+                }}
+              >
+                Hintergrund
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(5, 40px)",
+                  gap: "10px"
+                }}
+              >
+                {BACKGROUND_COLORS.map((color, index) => (
+                  <button
+                    key={color}
+                    type="button"
+                    title={`Farbe ${index + 1}`}
+                    onClick={() => {
+                      const nextIndex = (index + 1) % BACKGROUND_COLORS.length;
+                      setBackgroundColor(color);
+                      setNextColor(BACKGROUND_COLORS[nextIndex]);
+                      setAutoMode(false);
+                    }}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "999px",
+                      background: `linear-gradient(135deg, ${color}, ${BACKGROUND_COLORS[(index + 1) % BACKGROUND_COLORS.length]})`,
+                      cursor: "pointer",
+                      border:
+                        backgroundColor === color
+                          ? "2px solid #ffffff"
+                          : "1px solid rgba(255,255,255,0.25)",
+                      boxShadow:
+                        backgroundColor === color
+                          ? "0 0 0 3px rgba(255,255,255,0.15)"
+                          : "none"
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -165,7 +270,9 @@ export default function Home() {
               <div className="micro-label">Archiv leer</div>
               <h3>Noch keine Produkte vorhanden</h3>
               <p>Öffne den Adminbereich und füge deine ersten Produkte hinzu.</p>
-              <a className="primary-btn" href="/admin">Produkt anlegen</a>
+              <a className="primary-btn" href="/admin">
+                Produkt anlegen
+              </a>
             </div>
           ) : (
             (otherProducts.length > 0 ? otherProducts : products).map((p) => (
