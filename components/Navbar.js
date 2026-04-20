@@ -1,7 +1,7 @@
 export default function Navbar({ session }) {
   return (
     <div style={{ background: "red", color: "white", padding: "20px", fontSize: "30px" }}>
-      NAVBAR TEST 123
+      NAVBAR TEST 1234
     </div>
   );
 }
