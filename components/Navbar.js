@@ -1,4 +1,11 @@
-<span style={{ color: "red" }}>NAVBAR TEST</span>
+export default function Navbar({ session }) {
+  return (
+    <div style={{ background: "red", color: "white", padding: "20px", fontSize: "30px" }}>
+      NAVBAR TEST 123
+    </div>
+  );
+}
+//<span style={{ color: "red" }}>NAVBAR TEST</span>
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
