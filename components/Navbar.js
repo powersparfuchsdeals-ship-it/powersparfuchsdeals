@@ -1,58 +1,77 @@
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function Navbar({ session }) {
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
-  const userEmail = session?.user?.email || "";
-  const isAdmin =
-    userEmail && adminEmail
-      ? userEmail.toLowerCase() === adminEmail.toLowerCase()
-      : false;
+  const router = useRouter();
+  const [query, setQuery] = useState("");
 
-  async function handleLogout(e) {
-    e.preventDefault();
-    if (!supabase) return;
+  const isLoggedIn = useMemo(() => !!session, [session]);
+
+  async function handleLogout() {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    router.push("/login");
+  }
+
+  function handleSearch(e) {
+    e.preventDefault();
+    const q = query.trim();
+
+    if (!q) return;
+
+    router.push(`/?q=${encodeURIComponent(q)}`);
   }
 
   return (
-    <header className="navbar-wrap">
-      <nav className="navbar shell">
-        <div className="navbar-left">
-          <a className="brand-link" href="/">
-            Orbital-Noir
-          </a>
-        </div>
+    <header className="shop-nav">
+      <div className="shop-nav-top">
+        <Link href="/" className="shop-logo">
+          <span className="shop-logo-mark">◉</span>
+          <div className="shop-logo-text">
+            <strong>Orbital-Noir</strong>
+            <span>Tech Deals</span>
+          </div>
+        </Link>
 
-        <div className="navbar-right">
-          <a className="nav-link" href="/">
-            Shop
-          </a>
+        <form className="shop-search" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Produkte suchen"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button type="submit">Suchen</button>
+        </form>
 
-          {session ? (
+        <nav className="shop-nav-actions">
+          <Link href="/">Start</Link>
+          <Link href="/admin">Admin</Link>
+
+          {isLoggedIn ? (
             <>
-              {isAdmin ? (
-                <a className="nav-link nav-btn" href="/admin">
-                  Admin
-                </a>
-              ) : null}
-
-              <a className="nav-link nav-btn" href="#" onClick={handleLogout}>
+              <Link href="/account">Konto</Link>
+              <button className="shop-nav-logout" onClick={handleLogout}>
                 Logout
-              </a>
+              </button>
             </>
           ) : (
             <>
-              <a className="nav-link nav-btn" href="/login">
-                Login
-              </a>
-              <a className="nav-link nav-btn" href="/register">
-                Register
-              </a>
+              <Link href="/login">Login</Link>
+              <Link href="/register">Registrieren</Link>
             </>
           )}
-        </div>
-      </nav>
+        </nav>
+      </div>
+
+      <div className="shop-nav-bottom">
+        <Link href="/">Alle</Link>
+        <Link href="/?category=smartphone">Smartphones</Link>
+        <Link href="/?category=smart-tv">Smart TV</Link>
+        <Link href="/?category=audio">Audio</Link>
+        <Link href="/?category=laptop">Laptops</Link>
+        <Link href="/?category=zubehoer">Zubehör</Link>
+      </div>
     </header>
   );
 }
