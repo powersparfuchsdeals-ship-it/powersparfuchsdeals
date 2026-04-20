@@ -1,11 +1,3 @@
-export default function Navbar({ session }) {
-  return (
-    <div style={{ background: "red", color: "white", padding: "20px", fontSize: "30px" }}>
-      NAVBAR TEST 1234567890
-    </div>
-  );
-}
-//<span style={{ color: "red" }}>NAVBAR TEST</span>
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
@@ -25,9 +17,7 @@ export default function Navbar({ session }) {
   function handleSearch(e) {
     e.preventDefault();
     const q = query.trim();
-
     if (!q) return;
-
     router.push(`/?q=${encodeURIComponent(q)}`);
   }
 
@@ -58,7 +48,7 @@ export default function Navbar({ session }) {
 
           {isLoggedIn ? (
             <>
-              <Link href="/account">Konto</Link>
+              <Link href="/admin">Konto</Link>
               <button className="shop-nav-logout" onClick={handleLogout}>
                 Logout
               </button>
