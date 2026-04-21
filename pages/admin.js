@@ -3,6 +3,27 @@ import { supabase } from "../lib/supabase";
 import { buildSmartProduct, detectVendor, normalizeUrl } from "../lib/smartImport";
 import { importFeedRows, parseFeedText } from "../lib/feedImport";
 
+function StatCard({ label, value }) {
+  return (
+    <div style={styles.statCard}>
+      <div style={styles.statValue}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+function TabButton({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={active ? styles.tabActive : styles.tab}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function Admin() {
   const [session, setSession] = useState(null);
   const [products, setProducts] = useState([]);
@@ -15,7 +36,6 @@ export default function Admin() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [theme, setTheme] = useState("dark");
 
   const [importLink, setImportLink] = useState("");
   const [importTitle, setImportTitle] = useState("");
@@ -57,17 +77,6 @@ export default function Admin() {
     });
   }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("admin-theme");
-    if (saved) setTheme(saved);
-  }, []);
-
-  useEffect(() => {
-    document.body.classList.remove("dark", "blue", "green");
-    document.body.classList.add(theme);
-    localStorage.setItem("admin-theme", theme);
-  }, [theme]);
-
   async function loadProducts() {
     if (!supabase) return;
 
@@ -82,14 +91,18 @@ export default function Admin() {
   async function loadSyncRuns(accessToken) {
     if (!accessToken) return;
 
-    const res = await fetch("/api/admin/sync-runs", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    });
+    try {
+      const res = await fetch("/api/admin/sync-runs", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
 
-    const data = await res.json();
-    if (data.ok) setSyncRuns(data.runs || []);
+      const data = await res.json();
+      if (data.ok) setSyncRuns(data.runs || []);
+    } catch {
+      setSyncRuns([]);
+    }
   }
 
   async function runManualSync() {
@@ -131,8 +144,12 @@ export default function Admin() {
   function handleFile(e) {
     const f = e.target.files?.[0] || null;
     setFile(f);
-    if (f) setPreview(URL.createObjectURL(f));
-    else setPreview(null);
+
+    if (f) {
+      setPreview(URL.createObjectURL(f));
+    } else {
+      setPreview(null);
+    }
   }
 
   function resetManualForm() {
@@ -189,11 +206,16 @@ export default function Admin() {
     if (imageUrl) payload.image = imageUrl;
 
     if (editingId) {
-      const { error } = await supabase.from("products").update(payload).eq("id", editingId);
+      const { error } = await supabase
+        .from("products")
+        .update(payload)
+        .eq("id", editingId);
+
       if (error) {
         setMessage(error.message);
         return;
       }
+
       setMessage("Produkt aktualisiert.");
     } else {
       const { error } = await supabase.from("products").insert([
@@ -208,6 +230,7 @@ export default function Admin() {
         setMessage(error.message);
         return;
       }
+
       setMessage("Produkt erstellt.");
     }
 
@@ -239,6 +262,7 @@ export default function Admin() {
     };
 
     const { error } = await supabase.from("products").insert([product]);
+
     if (error) {
       setMessage(error.message);
       return;
@@ -254,7 +278,11 @@ export default function Admin() {
   async function runBulkImport() {
     if (!supabase || !session?.user) return;
 
-    const lines = bulkLinks.split("\n").map((line) => line.trim()).filter(Boolean);
+    const lines = bulkLinks
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
     if (!lines.length) {
       setMessage("Bitte Links Zeile für Zeile einfügen.");
       return;
@@ -278,6 +306,7 @@ export default function Admin() {
     });
 
     const { error } = await supabase.from("products").insert(rows);
+
     if (error) {
       setMessage(error.message);
       return;
@@ -378,7 +407,11 @@ export default function Admin() {
       }
     }
 
-    const { error } = await supabase.from("products").delete().eq("id", product.id);
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", product.id);
+
     if (error) {
       setMessage(error.message);
       return;
@@ -399,11 +432,17 @@ export default function Admin() {
     );
   }, [products, search]);
 
+  const totalClicks = useMemo(() => {
+    return products.reduce((sum, product) => sum + Number(product.clicks || 0), 0);
+  }, [products]);
+
   if (!supabase) {
     return (
-      <div style={{ padding: 40 }}>
-        <h1>Supabase ENV fehlt</h1>
-        <p>Prüfe NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.</p>
+      <div style={styles.missingWrap}>
+        <h1 style={styles.missingTitle}>Supabase ENV fehlt</h1>
+        <p style={styles.missingText}>
+          Prüfe NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.
+        </p>
       </div>
     );
   }
@@ -411,120 +450,142 @@ export default function Admin() {
   if (!session) return null;
 
   return (
-    <div className="admin-wrap-v2 admin-wrap-v3">
-      <div className="backdrop-grid" />
-      <div className="backdrop-glow glow-a" />
-      <div className="backdrop-glow glow-b" />
-
-      <div className="shell admin-shell-v2 admin-shell-v3">
-        <section className="admin-header-v2 panel-v2 panel-v3">
+    <div style={styles.page}>
+      <main style={styles.shell}>
+        <header style={styles.header}>
           <div>
-            <div className="eyebrow">Orbital-Noir / Feed Import</div>
-            <h1>Preis-Import mit Feed</h1>
-            <p>Links, CSV oder JSON importieren. Preise werden aus dem Feed übernommen.</p>
+            <div style={styles.eyebrow}>Orbital-Noir / Admin</div>
+            <h1 style={styles.title}>Admin Dashboard</h1>
+            <p style={styles.subtitle}>
+              Produkte verwalten, Importe ausführen und Sync-Historie prüfen.
+            </p>
           </div>
 
-          <div className="admin-top-actions-v2 admin-top-actions-v3">
-            <div className="theme-switcher-v3">
-              <button className={`cta-secondary cta-large ${theme === "dark" ? "theme-active-v3" : ""}`} onClick={() => setTheme("dark")} type="button">
-                Schwarz
-              </button>
-              <button className={`cta-secondary cta-large ${theme === "blue" ? "theme-active-v3" : ""}`} onClick={() => setTheme("blue")} type="button">
-                Blau
-              </button>
-              <button className={`cta-secondary cta-large ${theme === "green" ? "theme-active-v3" : ""}`} onClick={() => setTheme("green")} type="button">
-                Grün
-              </button>
-            </div>
-
-            <button className="cta-primary cta-large" onClick={runManualSync} disabled={syncLoading} type="button">
-              {syncLoading ? "Sync läuft..." : "Sync jetzt starten"}
+          <div style={styles.headerActions}>
+            <button
+              type="button"
+              onClick={runManualSync}
+              disabled={syncLoading}
+              style={styles.primaryButton}
+            >
+              {syncLoading ? "Sync läuft..." : "Sync starten"}
             </button>
 
-            <a className="cta-secondary cta-large" href="/">
+            <a href="/" style={styles.secondaryButton}>
               Zum Shop
             </a>
           </div>
+        </header>
+
+        <section style={styles.statsGrid}>
+          <StatCard label="Produkte" value={products.length} />
+          <StatCard label="Sync Runs" value={syncRuns.length} />
+          <StatCard label="Gesamtklicks" value={totalClicks} />
         </section>
 
-        <div className="admin-tools-v3 panel-v2 panel-v3">
-          <button className="cta-primary" onClick={runManualSync} type="button">
-            {syncLoading ? "Sync läuft..." : "🔄 Auto Sync starten"}
-          </button>
-
-          <button className="cta-secondary" onClick={() => setTab("feed")} type="button">
-            📦 Feed Import
-          </button>
-
-          <button className="cta-secondary" onClick={() => setTab("manual")} type="button">
-            ➕ Neues Produkt
-          </button>
-        </div>
-
-        <div className="stats-grid-v3">
-          <div className="stat-box">
-            <h3>{products.length}</h3>
-            <p>Produkte</p>
-          </div>
-
-          <div className="stat-box">
-            <h3>{syncRuns.length}</h3>
-            <p>Sync Runs</p>
-          </div>
-
-          <div className="stat-box">
-            <h3>{products.filter((p) => Number(p.price) > 100).length}</h3>
-            <p>Premium Produkte</p>
-          </div>
-        </div>
-
-        <section className="admin-grid-v2 admin-grid-v3">
-          <div>
-            <div className="panel-v2 panel-v3 admin-form-v2 admin-form-v3">
-              <div className="admin-tabs-v2 admin-tabs-v3">
-                <button className={tab === "manual" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("manual")}>Manuell</button>
-                <button className={tab === "import" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("import")}>Smart Import</button>
-                <button className={tab === "bulk" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("bulk")}>Bulk Link</button>
-                <button className={tab === "feed" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("feed")}>Feed Import</button>
-                <button className={tab === "amazon" ? "tab-active tab-large" : "tab-idle tab-large"} onClick={() => setTab("amazon")}>Amazon</button>
+        <section style={styles.mainGrid}>
+          <div style={styles.leftColumn}>
+            <section style={styles.panel}>
+              <div style={styles.tabs}>
+                <TabButton active={tab === "manual"} onClick={() => setTab("manual")}>
+                  Manuell
+                </TabButton>
+                <TabButton active={tab === "import"} onClick={() => setTab("import")}>
+                  Smart Import
+                </TabButton>
+                <TabButton active={tab === "bulk"} onClick={() => setTab("bulk")}>
+                  Bulk
+                </TabButton>
+                <TabButton active={tab === "feed"} onClick={() => setTab("feed")}>
+                  Feed
+                </TabButton>
+                <TabButton active={tab === "amazon"} onClick={() => setTab("amazon")}>
+                  Amazon
+                </TabButton>
               </div>
 
               {tab === "manual" && (
                 <>
-                  <div className="eyebrow">{editingId ? "Bearbeiten" : "Neues Produkt"}</div>
-                  <h2>{editingId ? "Produkt aktualisieren" : "Produkt anlegen"}</h2>
+                  <div style={styles.eyebrow}>{editingId ? "Bearbeiten" : "Neues Produkt"}</div>
+                  <h2 style={styles.sectionTitle}>
+                    {editingId ? "Produkt aktualisieren" : "Produkt anlegen"}
+                  </h2>
 
-                  <input className="field-v2 field-large" placeholder="Produktname" value={name} onChange={(e) => setName(e.target.value)} />
-                  <input className="field-v2 field-large" placeholder="Preis" value={price} onChange={(e) => setPrice(e.target.value)} />
-                  <textarea className="field-v2 field-large textarea-v2 textarea-large" placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
-                  <input className="field-v2 field-large" placeholder="Verkaufslink / Kauf-URL" value={buyLink} onChange={(e) => setBuyLink(e.target.value)} />
-                  <input className="field-v2 field-large" type="file" onChange={handleFile} />
+                  <input
+                    style={styles.input}
+                    placeholder="Produktname"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                  <input
+                    style={styles.input}
+                    placeholder="Preis"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                  <textarea
+                    style={styles.textarea}
+                    placeholder="Beschreibung"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                  <input
+                    style={styles.input}
+                    placeholder="Verkaufslink / Kauf-URL"
+                    value={buyLink}
+                    onChange={(e) => setBuyLink(e.target.value)}
+                  />
+                  <input style={styles.input} type="file" onChange={handleFile} />
 
                   {preview ? (
-                    <div className="preview-v2 preview-large">
-                      <img src={preview} alt="Vorschau" />
+                    <div style={styles.previewBox}>
+                      <img src={preview} alt="Vorschau" style={styles.previewImage} />
                     </div>
                   ) : null}
 
-                  <div style={{ marginTop: "12px" }}>
-                    <button className="cta-primary full cta-large cta-xl" onClick={saveManualProduct}>
+                  <div style={styles.formActions}>
+                    <button type="button" onClick={saveManualProduct} style={styles.primaryButton}>
                       {editingId ? "Änderungen speichern" : "Produkt erstellen"}
                     </button>
+
+                    {editingId ? (
+                      <button
+                        type="button"
+                        onClick={resetManualForm}
+                        style={styles.secondaryButton}
+                      >
+                        Abbrechen
+                      </button>
+                    ) : null}
                   </div>
                 </>
               )}
 
               {tab === "import" && (
                 <>
-                  <div className="eyebrow">Einzel-Link Import</div>
-                  <h2>Smart Import</h2>
-                  <p className="muted-copy">Optionaler Preis wird direkt übernommen.</p>
+                  <div style={styles.eyebrow}>Einzel-Link Import</div>
+                  <h2 style={styles.sectionTitle}>Smart Import</h2>
 
-                  <input className="field-v2 field-large" placeholder="Anbieter-Link" value={importLink} onChange={(e) => setImportLink(e.target.value)} />
-                  <input className="field-v2 field-large" placeholder="Optionaler Produkttitel" value={importTitle} onChange={(e) => setImportTitle(e.target.value)} />
-                  <input className="field-v2 field-large" placeholder="Optionaler Preis" value={importPrice} onChange={(e) => setImportPrice(e.target.value)} />
+                  <input
+                    style={styles.input}
+                    placeholder="Anbieter-Link"
+                    value={importLink}
+                    onChange={(e) => setImportLink(e.target.value)}
+                  />
+                  <input
+                    style={styles.input}
+                    placeholder="Optionaler Produkttitel"
+                    value={importTitle}
+                    onChange={(e) => setImportTitle(e.target.value)}
+                  />
+                  <input
+                    style={styles.input}
+                    placeholder="Optionaler Preis"
+                    value={importPrice}
+                    onChange={(e) => setImportPrice(e.target.value)}
+                  />
 
-                  <button className="cta-primary full cta-large cta-xl" onClick={runSmartImport}>
+                  <button type="button" onClick={runSmartImport} style={styles.primaryButton}>
                     Smart Import ausführen
                   </button>
                 </>
@@ -532,17 +593,17 @@ export default function Admin() {
 
               {tab === "bulk" && (
                 <>
-                  <div className="eyebrow">Mehrere Links</div>
-                  <h2>Bulk Import</h2>
+                  <div style={styles.eyebrow}>Mehrere Links</div>
+                  <h2 style={styles.sectionTitle}>Bulk Import</h2>
 
                   <textarea
-                    className="field-v2 field-large textarea-v2 textarea-large"
+                    style={styles.textarea}
                     placeholder={"https://amazon.de/...\nhttps://otto.de/..."}
                     value={bulkLinks}
                     onChange={(e) => setBulkLinks(e.target.value)}
                   />
 
-                  <button className="cta-primary full cta-large cta-xl" onClick={runBulkImport}>
+                  <button type="button" onClick={runBulkImport} style={styles.primaryButton}>
                     Bulk Import starten
                   </button>
                 </>
@@ -550,18 +611,19 @@ export default function Admin() {
 
               {tab === "feed" && (
                 <>
-                  <div className="eyebrow">CSV oder JSON</div>
-                  <h2>Feed Import</h2>
-                  <p className="muted-copy">Für automatische Preise brauchst du einen Feed. Nutze JSON oder CSV mit Preis-Spalte.</p>
+                  <div style={styles.eyebrow}>CSV oder JSON</div>
+                  <h2 style={styles.sectionTitle}>Feed Import</h2>
 
                   <textarea
-                    className="field-v2 field-large textarea-v2 textarea-large"
-                    placeholder={'JSON Beispiel:\n[{"name":"Produkt A","price":"199","buy_link":"https://amazon.de/...","image":"https://..."}]\n\nCSV Beispiel:\nname,price,buy_link,image,description\nProdukt A,199,https://amazon.de/...,https://...,Top Deal'}
+                    style={styles.textareaLarge}
+                    placeholder={
+                      'JSON Beispiel:\n[{"name":"Produkt A","price":"199","buy_link":"https://amazon.de/...","image":"https://..."}]\n\nCSV Beispiel:\nname,price,buy_link,image,description\nProdukt A,199,https://amazon.de/...,https://...,Top Deal'
+                    }
                     value={feedText}
                     onChange={(e) => setFeedText(e.target.value)}
                   />
 
-                  <button className="cta-primary full cta-large cta-xl" onClick={runFeedImport}>
+                  <button type="button" onClick={runFeedImport} style={styles.primaryButton}>
                     Feed importieren
                   </button>
                 </>
@@ -569,116 +631,568 @@ export default function Admin() {
 
               {tab === "amazon" && (
                 <>
-                  <div className="eyebrow">Amazon Creators API</div>
-                  <h2>Amazon Import</h2>
-                  <p className="muted-copy">
-                    Suche Amazon-Produkte per Keyword und importiere sie direkt in deinen Shop.
-                  </p>
+                  <div style={styles.eyebrow}>Amazon API</div>
+                  <h2 style={styles.sectionTitle}>Amazon Import</h2>
 
                   <input
-                    className="field-v2 field-large"
-                    placeholder="z. B. Kopfhörer, Monitor, Gaming Maus"
+                    style={styles.input}
+                    placeholder="z. B. Monitor, Kopfhörer, Gaming Maus"
                     value={amazonQuery}
                     onChange={(e) => setAmazonQuery(e.target.value)}
                   />
 
                   <button
-                    className="cta-primary full cta-large cta-xl"
+                    type="button"
                     onClick={runAmazonImport}
                     disabled={amazonLoading}
-                    type="button"
+                    style={styles.primaryButton}
                   >
                     {amazonLoading ? "Amazon lädt..." : "Amazon Produkte importieren"}
                   </button>
                 </>
               )}
 
-              {message ? <p className="msg-info">{message}</p> : null}
-            </div>
+              {message ? <div style={styles.messageBox}>{message}</div> : null}
+            </section>
 
-            <div className="panel-v2 panel-v3 sync-panel-v3">
-              <div className="eyebrow">Auto Sync</div>
-              <h2>Letzte Läufe</h2>
+            <section style={styles.panel}>
+              <div style={styles.eyebrow}>Sync Historie</div>
+              <h2 style={styles.sectionTitle}>Letzte Läufe</h2>
 
               {syncResult ? (
-                <div className="sync-result-v3">
-                  <pre>{JSON.stringify(syncResult, null, 2)}</pre>
+                <div style={styles.codeBox}>
+                  <pre style={styles.pre}>{JSON.stringify(syncResult, null, 2)}</pre>
                 </div>
               ) : null}
 
               {syncRuns.length === 0 ? (
-                <p className="muted-copy">Noch keine Sync-Historie vorhanden.</p>
+                <p style={styles.muted}>Noch keine Sync-Historie vorhanden.</p>
               ) : (
-                <div className="sync-runs-v3">
+                <div style={styles.syncList}>
                   {syncRuns.map((run) => (
-                    <article key={run.id} className="sync-run-card-v3">
-                      <strong>{run.source_name || "default"}</strong>
-                      <p>Items: {run.item_count ?? 0}</p>
-                      <p>{new Date(run.created_at).toLocaleString("de-DE")}</p>
-                      <p className="sync-run-key-v3">{run.run_key}</p>
-                    </article>
+                    <div key={run.id} style={styles.syncItem}>
+                      <strong style={styles.syncName}>{run.source_name || "default"}</strong>
+                      <div style={styles.syncMeta}>Items: {run.item_count ?? 0}</div>
+                      <div style={styles.syncMeta}>
+                        {new Date(run.created_at).toLocaleString("de-DE")}
+                      </div>
+                      <div style={styles.syncKey}>{run.run_key}</div>
+                    </div>
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           </div>
 
-          <div className="panel-v2 panel-v3 admin-list-v2 admin-list-v3">
-            <div className="admin-list-top-v2 admin-list-top-v3">
+          <section style={styles.panel}>
+            <div style={styles.listHeader}>
               <div>
-                <div className="eyebrow">Archiv</div>
-                <h2>Produkte</h2>
+                <div style={styles.eyebrow}>Produkte</div>
+                <h2 style={styles.sectionTitle}>Archiv</h2>
               </div>
 
               <input
-                className="field-v2 field-large search-v2"
+                style={styles.searchInput}
                 placeholder="Suchen..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            <div className="admin-cards-v2 admin-cards-v3">
-              {filteredProducts.length === 0 ? (
-                <div className="empty-v2">
-                  <h3>Keine Produkte gefunden</h3>
-                </div>
-              ) : (
-                filteredProducts.map((product) => (
-                  <article key={product.id} className="admin-card-v2 admin-card-v3">
+            {filteredProducts.length === 0 ? (
+              <div style={styles.emptyState}>Keine Produkte gefunden.</div>
+            ) : (
+              <div style={styles.productList}>
+                {filteredProducts.map((product) => (
+                  <article key={product.id} style={styles.productCard}>
                     <img
                       src={product.image || "https://via.placeholder.com/800x600?text=Produkt"}
                       alt={product.name}
+                      style={styles.productImage}
                     />
 
-                    <div className="admin-card-content-v2 admin-card-content-v3">
-                      <div className="admin-card-head-v2 admin-card-head-v3">
-                        <h3>{product.name}</h3>
-                        <strong>{product.price} €</strong>
+                    <div style={styles.productContent}>
+                      <div style={styles.productTop}>
+                        <div>
+                          <h3 style={styles.productTitle}>{product.name}</h3>
+                          <div style={styles.productMeta}>
+                            {product.clicks || 0} Klicks
+                          </div>
+                        </div>
+
+                        <strong style={styles.productPrice}>{product.price} €</strong>
                       </div>
 
-                      <p>{product.description || "Keine Beschreibung hinterlegt."}</p>
-
-                      <p className="link-preview">
-                        {product.buy_link ? <>Link: {product.buy_link}</> : null}
+                      <p style={styles.productDescription}>
+                        {product.description || "Keine Beschreibung hinterlegt."}
                       </p>
 
-                      <div className="admin-buttons-v2 admin-buttons-v3">
-                        <button className="cta-secondary cta-large" onClick={() => editProduct(product)}>
+                      {product.buy_link ? (
+                        <div style={styles.productLink}>{product.buy_link}</div>
+                      ) : null}
+
+                      <div style={styles.productActions}>
+                        <button
+                          type="button"
+                          onClick={() => editProduct(product)}
+                          style={styles.secondaryButton}
+                        >
                           Bearbeiten
                         </button>
-                        <button className="danger-v2 danger-large" onClick={() => deleteProduct(product)}>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteProduct(product)}
+                          style={styles.dangerButton}
+                        >
                           Löschen
                         </button>
                       </div>
                     </div>
                   </article>
-                ))
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            )}
+          </section>
         </section>
-      </div>
+      </main>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f6f7f9",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    color: "#111827"
+  },
+
+  shell: {
+    maxWidth: "1320px",
+    margin: "0 auto",
+    padding: "28px 16px 40px"
+  },
+
+  header: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "20px",
+    padding: "24px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
+    marginBottom: "18px"
+  },
+
+  eyebrow: {
+    fontSize: "12px",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    color: "#6b7280",
+    marginBottom: "8px"
+  },
+
+  title: {
+    margin: 0,
+    fontSize: "34px",
+    lineHeight: 1.05,
+    letterSpacing: "-0.04em",
+    color: "#111827"
+  },
+
+  subtitle: {
+    marginTop: "10px",
+    marginBottom: 0,
+    color: "#4b5563",
+    lineHeight: 1.6
+  },
+
+  headerActions: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap"
+  },
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "16px",
+    marginBottom: "18px"
+  },
+
+  statCard: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "18px",
+    padding: "20px"
+  },
+
+  statValue: {
+    fontSize: "30px",
+    fontWeight: 700,
+    letterSpacing: "-0.04em",
+    color: "#111827"
+  },
+
+  statLabel: {
+    marginTop: "8px",
+    color: "#6b7280"
+  },
+
+  mainGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1.15fr",
+    gap: "18px",
+    alignItems: "start"
+  },
+
+  leftColumn: {
+    display: "grid",
+    gap: "18px"
+  },
+
+  panel: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "20px",
+    padding: "20px"
+  },
+
+  tabs: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    marginBottom: "18px"
+  },
+
+  tab: {
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "1px solid #d1d5db",
+    background: "#f9fafb",
+    cursor: "pointer",
+    color: "#111827",
+    fontWeight: 500
+  },
+
+  tabActive: {
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "1px solid #111827",
+    background: "#111827",
+    color: "#ffffff",
+    cursor: "pointer",
+    fontWeight: 600
+  },
+
+  sectionTitle: {
+    marginTop: 0,
+    marginBottom: "14px",
+    fontSize: "24px",
+    lineHeight: 1.1,
+    letterSpacing: "-0.03em",
+    color: "#111827"
+  },
+
+  input: {
+    width: "100%",
+    marginBottom: "12px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: "120px",
+    marginBottom: "12px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    resize: "vertical",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  textareaLarge: {
+    width: "100%",
+    minHeight: "220px",
+    marginBottom: "12px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    resize: "vertical",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  formActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap"
+  },
+
+  primaryButton: {
+    display: "inline-flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "44px",
+    padding: "0 16px",
+    borderRadius: "12px",
+    background: "#111827",
+    color: "#ffffff",
+    border: "none",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontWeight: 600
+  },
+
+  secondaryButton: {
+    display: "inline-flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "44px",
+    padding: "0 16px",
+    borderRadius: "12px",
+    background: "#f3f4f6",
+    color: "#111827",
+    border: "1px solid #d1d5db",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontWeight: 600
+  },
+
+  dangerButton: {
+    display: "inline-flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "44px",
+    padding: "0 16px",
+    borderRadius: "12px",
+    background: "#fef2f2",
+    color: "#991b1b",
+    border: "1px solid #fecaca",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontWeight: 600
+  },
+
+  previewBox: {
+    marginBottom: "14px",
+    borderRadius: "14px",
+    overflow: "hidden",
+    border: "1px solid #e5e7eb",
+    background: "#f9fafb"
+  },
+
+  previewImage: {
+    display: "block",
+    width: "100%",
+    maxHeight: "260px",
+    objectFit: "cover"
+  },
+
+  messageBox: {
+    marginTop: "14px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    background: "#f3f4f6",
+    color: "#111827",
+    border: "1px solid #e5e7eb"
+  },
+
+  codeBox: {
+    marginBottom: "16px",
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "12px",
+    overflowX: "auto"
+  },
+
+  pre: {
+    margin: 0,
+    whiteSpace: "pre-wrap",
+    color: "#111827",
+    fontSize: "13px",
+    lineHeight: 1.5
+  },
+
+  muted: {
+    color: "#6b7280",
+    margin: 0
+  },
+
+  syncList: {
+    display: "grid",
+    gap: "12px"
+  },
+
+  syncItem: {
+    padding: "14px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "14px",
+    background: "#f9fafb"
+  },
+
+  syncName: {
+    color: "#111827"
+  },
+
+  syncMeta: {
+    marginTop: "6px",
+    color: "#4b5563",
+    fontSize: "14px"
+  },
+
+  syncKey: {
+    marginTop: "8px",
+    fontSize: "12px",
+    color: "#6b7280",
+    wordBreak: "break-word"
+  },
+
+  listHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "end",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "14px"
+  },
+
+  searchInput: {
+    width: "260px",
+    maxWidth: "100%",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  productList: {
+    display: "grid",
+    gap: "14px"
+  },
+
+  productCard: {
+    display: "grid",
+    gridTemplateColumns: "140px 1fr",
+    gap: "16px",
+    padding: "14px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "16px",
+    background: "#fafafa",
+    alignItems: "start"
+  },
+
+  productImage: {
+    width: "100%",
+    height: "140px",
+    objectFit: "cover",
+    borderRadius: "12px",
+    background: "#f3f4f6"
+  },
+
+  productContent: {
+    minWidth: 0
+  },
+
+  productTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    alignItems: "start",
+    marginBottom: "8px",
+    flexWrap: "wrap"
+  },
+
+  productTitle: {
+    margin: 0,
+    fontSize: "20px",
+    lineHeight: 1.2,
+    letterSpacing: "-0.03em",
+    color: "#111827"
+  },
+
+  productMeta: {
+    marginTop: "6px",
+    color: "#6b7280",
+    fontSize: "14px"
+  },
+
+  productPrice: {
+    color: "#111827",
+    whiteSpace: "nowrap",
+    fontSize: "18px"
+  },
+
+  productDescription: {
+    marginTop: 0,
+    marginBottom: "10px",
+    color: "#4b5563",
+    lineHeight: 1.6
+  },
+
+  productLink: {
+    marginBottom: "12px",
+    color: "#374151",
+    fontSize: "13px",
+    wordBreak: "break-all"
+  },
+
+  productActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap"
+  },
+
+  emptyState: {
+    padding: "24px",
+    borderRadius: "14px",
+    background: "#f9fafb",
+    border: "1px dashed #d1d5db",
+    color: "#6b7280"
+  },
+
+  missingWrap: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    padding: "40px",
+    background: "#f6f7f9",
+    color: "#111827",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  },
+
+  missingTitle: {
+    marginTop: 0,
+    marginBottom: "10px",
+    fontSize: "32px",
+    color: "#111827"
+  },
+
+  missingText: {
+    margin: 0,
+    color: "#4b5563",
+    lineHeight: 1.6
+  }
+};
