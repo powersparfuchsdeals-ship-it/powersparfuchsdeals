@@ -1,5 +1,5 @@
 
-deploy fix test
+
 # Orbital-Noir Premium
 
 ## Vercel
@@ -57,4 +57,4 @@ using (bucket_id = 'images');
 Bucket `images` anlegen und public setzen.
 deploy test 123
 
-deploy reconnect test 2
+
