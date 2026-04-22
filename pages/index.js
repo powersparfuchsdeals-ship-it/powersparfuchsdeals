@@ -1,21 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
 import TopDealsSection from "../components/TopDealsSection";
 
-const SUNSET_COLORS = [
-  "#ffe082", // hellgelb
-  "#ffd54f", // goldgelb
-  "#ffca28", // sattes gelb
-  "#ffb74d", // warmes orange
-  "#ff9800", // orange
-  "#f57c00", // dunkelorange
-  "#e65100", // kupfer
-  "#8d6e63", // warmes braun
-  "#6d4c41", // braunrot
-  "#5e35b1", // abendviolett
-  "#3949ab", // tiefes blauviolett
-  "#1a237e"  // nachtblau
+const SUNSET_GRADIENTS = [
+  "linear-gradient(180deg, #fff3b0 0%, #ffd166 100%)",
+  "linear-gradient(180deg, #ffe08a 0%, #ffbf69 100%)",
+  "linear-gradient(180deg, #ffd166 0%, #ff9f1c 100%)",
+  "linear-gradient(180deg, #ffbf69 0%, #f77f00 100%)",
+  "linear-gradient(180deg, #ff9f1c 0%, #e76f51 100%)",
+  "linear-gradient(180deg, #f77f00 0%, #b56576 100%)",
+  "linear-gradient(180deg, #e76f51 0%, #6d597a 100%)",
+  "linear-gradient(180deg, #b56576 0%, #355070 100%)",
+  "linear-gradient(180deg, #6d597a 0%, #1d3557 100%)"
 ];
 
 const CATEGORY_OPTIONS = [
@@ -59,51 +56,17 @@ function getProductScore(product) {
   return score;
 }
 
-function hexToRgb(hex) {
-  const value = String(hex || "#000000").replace("#", "");
-  const normalized =
-    value.length === 3
-      ? value
-          .split("")
-          .map((char) => char + char)
-          .join("")
-      : value;
-
-  const int = parseInt(normalized, 16);
-
-  return {
-    r: (int >> 16) & 255,
-    g: (int >> 8) & 255,
-    b: int & 255
-  };
-}
-
-function mixColor(a, b, t) {
-  return {
-    r: Math.round(a.r + (b.r - a.r) * t),
-    g: Math.round(a.g + (b.g - a.g) * t),
-    b: Math.round(a.b + (b.b - a.b) * t)
-  };
-}
-
-function rgbToCss(color) {
-  return `rgb(${color.r}, ${color.g}, ${color.b})`;
-}
-
-function easeInOut(t) {
-  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [session, setSession] = useState(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [activePaletteIndex, setActivePaletteIndex] = useState(0);
 
-  const animationFrameRef = useRef(null);
-  const gradientStartRef = useRef(null);
-  const manualOffsetRef = useRef(0);
+  const [gradientA, setGradientA] = useState(SUNSET_GRADIENTS[0]);
+  const [gradientB, setGradientB] = useState(SUNSET_GRADIENTS[1]);
+  const [showLayerA, setShowLayerA] = useState(true);
+  const [activeGradientIndex, setActiveGradientIndex] = useState(0);
+  const [autoMode, setAutoMode] = useState(true);
 
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
   const userEmail = (session?.user?.email || "").toLowerCase();
@@ -116,10 +79,13 @@ export default function Home() {
     if (
       Number.isFinite(savedIndex) &&
       savedIndex >= 0 &&
-      savedIndex < SUNSET_COLORS.length
+      savedIndex < SUNSET_GRADIENTS.length
     ) {
-      manualOffsetRef.current = savedIndex * 12000;
-      setActivePaletteIndex(savedIndex);
+      const nextIndex = (savedIndex + 1) % SUNSET_GRADIENTS.length;
+      setActiveGradientIndex(savedIndex);
+      setGradientA(SUNSET_GRADIENTS[savedIndex]);
+      setGradientB(SUNSET_GRADIENTS[nextIndex]);
+      setShowLayerA(true);
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -132,67 +98,36 @@ export default function Home() {
 
     return () => {
       listener.subscription.unsubscribe();
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
     };
   }, []);
 
   useEffect(() => {
-    const STEP_DURATION = 12000;
+    document.body.style.background = "#1d3557";
+    document.body.style.backgroundAttachment = "fixed";
+  }, []);
 
-    function animate(timestamp) {
-      if (!gradientStartRef.current) {
-        gradientStartRef.current = timestamp;
-      }
+  useEffect(() => {
+    if (!autoMode) return;
 
-      const elapsed = manualOffsetRef.current + (timestamp - gradientStartRef.current);
-      const totalSteps = SUNSET_COLORS.length;
+    const interval = setInterval(() => {
+      setActiveGradientIndex((prev) => {
+        const nextIndex = (prev + 1) % SUNSET_GRADIENTS.length;
+        const afterNextIndex = (nextIndex + 1) % SUNSET_GRADIENTS.length;
 
-      const rawStep = elapsed / STEP_DURATION;
-      const currentStep = Math.floor(rawStep) % totalSteps;
-      const progress = rawStep % 1;
-      const t = easeInOut(progress);
+        if (showLayerA) {
+          setGradientB(SUNSET_GRADIENTS[afterNextIndex]);
+        } else {
+          setGradientA(SUNSET_GRADIENTS[afterNextIndex]);
+        }
 
-      const indexA1 = currentStep % totalSteps;
-      const indexA2 = (currentStep + 1) % totalSteps;
-      const indexB1 = (currentStep + 2) % totalSteps;
-      const indexB2 = (currentStep + 3) % totalSteps;
+        setShowLayerA((current) => !current);
+        localStorage.setItem("orbital-noir-sunset-index", String(nextIndex));
+        return nextIndex;
+      });
+    }, 12000);
 
-      const colorA1 = hexToRgb(SUNSET_COLORS[indexA1]);
-      const colorA2 = hexToRgb(SUNSET_COLORS[indexA2]);
-      const colorB1 = hexToRgb(SUNSET_COLORS[indexB1]);
-      const colorB2 = hexToRgb(SUNSET_COLORS[indexB2]);
-
-      const mixedA = mixColor(colorA1, colorA2, t);
-      const mixedB = mixColor(colorB1, colorB2, t);
-
-      document.body.style.background = `linear-gradient(180deg, ${rgbToCss(
-        mixedA
-      )} 0%, ${rgbToCss(mixedB)} 100%)`;
-      document.body.style.backgroundAttachment = "fixed";
-
-      if (activePaletteIndex !== indexA1) {
-        setActivePaletteIndex(indexA1);
-        localStorage.setItem("orbital-noir-sunset-index", String(indexA1));
-      }
-
-      animationFrameRef.current = requestAnimationFrame(animate);
-    }
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    gradientStartRef.current = null;
-    animationFrameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [activePaletteIndex]);
+    return () => clearInterval(interval);
+  }, [autoMode, showLayerA]);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -249,6 +184,21 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
+      <div
+        style={{
+          ...styles.gradientLayer,
+          background: gradientA,
+          opacity: showLayerA ? 1 : 0
+        }}
+      />
+      <div
+        style={{
+          ...styles.gradientLayer,
+          background: gradientB,
+          opacity: showLayerA ? 0 : 1
+        }}
+      />
+
       <div style={styles.bgOrbA} />
       <div style={styles.bgOrbB} />
       <div style={styles.gridNoise} />
@@ -293,28 +243,31 @@ export default function Home() {
         </div>
 
         <div style={styles.paletteRow}>
-          {SUNSET_COLORS.map((color, index) => (
+          {SUNSET_GRADIENTS.map((gradient, index) => (
             <button
-              key={color}
+              key={index}
               type="button"
               title={`Sunset ${index + 1}`}
               onClick={() => {
-                manualOffsetRef.current = index * 12000;
-                gradientStartRef.current = null;
-                setActivePaletteIndex(index);
+                const nextIndex = (index + 1) % SUNSET_GRADIENTS.length;
+
+                setAutoMode(false);
+                setActiveGradientIndex(index);
+                setGradientA(SUNSET_GRADIENTS[index]);
+                setGradientB(SUNSET_GRADIENTS[nextIndex]);
+                setShowLayerA(true);
+
                 localStorage.setItem("orbital-noir-sunset-index", String(index));
               }}
               style={{
                 ...styles.paletteButton,
-                background: `linear-gradient(180deg, ${color}, ${
-                  SUNSET_COLORS[(index + 1) % SUNSET_COLORS.length]
-                })`,
+                background: gradient,
                 border:
-                  activePaletteIndex === index
+                  activeGradientIndex === index
                     ? "2px solid #111827"
                     : "1px solid rgba(17,24,39,0.14)",
                 boxShadow:
-                  activePaletteIndex === index
+                  activeGradientIndex === index
                     ? "0 0 0 3px rgba(17,24,39,0.08)"
                     : "none"
               }}
@@ -374,8 +327,8 @@ export default function Home() {
             <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
             <h1 style={styles.heroTitle}>Tech Deals im warmen Sunset-Look.</h1>
             <p style={styles.heroText}>
-              Ein langsamer, fließender Hintergrund wie ein Sonnenuntergang:
-              von hellem Gelb über Gold und Orange bis tief ins Abendblau.
+              Der Hintergrund wechselt jetzt nicht mehr ruckartig, sondern blendet
+              langsam von hellem Gelb über Gold und Orange bis in den Abend hinein.
             </p>
 
             {!session ? (
@@ -390,7 +343,7 @@ export default function Home() {
           <div style={styles.heroPanel}>
             <div style={styles.frameTop}>
               <span style={styles.statusDot} />
-              <span>Sunset Flow aktiv</span>
+              <span>Sunset Fade aktiv</span>
             </div>
 
             <div style={styles.visualCore}>
@@ -398,10 +351,10 @@ export default function Home() {
               <div style={styles.ringB} />
               <div style={styles.ringC} />
               <div style={styles.coreCard}>
-                <div style={styles.coreKicker}>Slow transition</div>
+                <div style={styles.coreKicker}>Soft fade</div>
                 <div style={styles.coreTitle}>Golden Hour UI</div>
                 <div style={styles.coreText}>
-                  Sanft gleitende Farbverläufe statt harter Farbwechsel – wie Sonne, die langsam untergeht.
+                  Zwei Hintergrund-Layer überblenden weich ineinander – ohne ruckelige Farbsprünge.
                 </div>
               </div>
             </div>
@@ -455,6 +408,15 @@ const styles = {
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   },
 
+  gradientLayer: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 0,
+    transition: "opacity 12s linear",
+    willChange: "opacity",
+    pointerEvents: "none"
+  },
+
   bgOrbA: {
     position: "fixed",
     top: "-140px",
@@ -462,9 +424,10 @@ const styles = {
     width: "420px",
     height: "420px",
     borderRadius: "999px",
-    background: "rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.16)",
     filter: "blur(80px)",
-    pointerEvents: "none"
+    pointerEvents: "none",
+    zIndex: 1
   },
 
   bgOrbB: {
@@ -476,7 +439,8 @@ const styles = {
     borderRadius: "999px",
     background: "rgba(255,255,255,0.12)",
     filter: "blur(90px)",
-    pointerEvents: "none"
+    pointerEvents: "none",
+    zIndex: 1
   },
 
   gridNoise: {
@@ -484,6 +448,7 @@ const styles = {
     inset: 0,
     pointerEvents: "none",
     opacity: 0.04,
+    zIndex: 1,
     backgroundImage:
       "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
     backgroundSize: "40px 40px"
