@@ -110,7 +110,7 @@ const CATEGORY_QUERIES = {
   ]
 };
 
-const MAX_PAGES_PER_QUERY = 2;
+const MAX_PAGES_PER_QUERY = 5;
 
 function getBaseUrl(req) {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
