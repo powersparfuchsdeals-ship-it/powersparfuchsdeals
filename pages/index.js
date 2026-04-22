@@ -3,17 +3,19 @@ import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
 import TopDealsSection from "../components/TopDealsSection";
 
-const BACKGROUND_COLORS = [
-  "#2b2f3a",
-  "#30364a",
-  "#34405c",
-  "#2f4a63",
-  "#3a4757",
-  "#4a3a55",
-  "#2e5a4a",
-  "#5a4a2e",
-  "#4a4a50",
-  "#314a63"
+const SUNSET_COLORS = [
+  "#ffe082", // hellgelb
+  "#ffd54f", // goldgelb
+  "#ffca28", // sattes gelb
+  "#ffb74d", // warmes orange
+  "#ff9800", // orange
+  "#f57c00", // dunkelorange
+  "#e65100", // kupfer
+  "#8d6e63", // warmes braun
+  "#6d4c41", // braunrot
+  "#5e35b1", // abendviolett
+  "#3949ab", // tiefes blauviolett
+  "#1a237e"  // nachtblau
 ];
 
 const CATEGORY_OPTIONS = [
@@ -97,7 +99,6 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [autoMode, setAutoMode] = useState(true);
   const [activePaletteIndex, setActivePaletteIndex] = useState(0);
 
   const animationFrameRef = useRef(null);
@@ -111,13 +112,13 @@ export default function Home() {
   useEffect(() => {
     loadProducts();
 
-    const savedIndex = Number(localStorage.getItem("orbital-noir-bg-index") || 0);
+    const savedIndex = Number(localStorage.getItem("orbital-noir-sunset-index") || 0);
     if (
       Number.isFinite(savedIndex) &&
       savedIndex >= 0 &&
-      savedIndex < BACKGROUND_COLORS.length
+      savedIndex < SUNSET_COLORS.length
     ) {
-      manualOffsetRef.current = savedIndex * 5000;
+      manualOffsetRef.current = savedIndex * 12000;
       setActivePaletteIndex(savedIndex);
     }
 
@@ -138,18 +139,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const STEP_DURATION = 5000;
+    const STEP_DURATION = 12000;
 
     function animate(timestamp) {
       if (!gradientStartRef.current) {
         gradientStartRef.current = timestamp;
       }
 
-      const elapsed = autoMode
-        ? timestamp - gradientStartRef.current
-        : manualOffsetRef.current + (timestamp - gradientStartRef.current);
+      const elapsed = manualOffsetRef.current + (timestamp - gradientStartRef.current);
+      const totalSteps = SUNSET_COLORS.length;
 
-      const totalSteps = BACKGROUND_COLORS.length;
       const rawStep = elapsed / STEP_DURATION;
       const currentStep = Math.floor(rawStep) % totalSteps;
       const progress = rawStep % 1;
@@ -157,25 +156,25 @@ export default function Home() {
 
       const indexA1 = currentStep % totalSteps;
       const indexA2 = (currentStep + 1) % totalSteps;
-      const indexB1 = (currentStep + 1) % totalSteps;
-      const indexB2 = (currentStep + 2) % totalSteps;
+      const indexB1 = (currentStep + 2) % totalSteps;
+      const indexB2 = (currentStep + 3) % totalSteps;
 
-      const colorA1 = hexToRgb(BACKGROUND_COLORS[indexA1]);
-      const colorA2 = hexToRgb(BACKGROUND_COLORS[indexA2]);
-      const colorB1 = hexToRgb(BACKGROUND_COLORS[indexB1]);
-      const colorB2 = hexToRgb(BACKGROUND_COLORS[indexB2]);
+      const colorA1 = hexToRgb(SUNSET_COLORS[indexA1]);
+      const colorA2 = hexToRgb(SUNSET_COLORS[indexA2]);
+      const colorB1 = hexToRgb(SUNSET_COLORS[indexB1]);
+      const colorB2 = hexToRgb(SUNSET_COLORS[indexB2]);
 
       const mixedA = mixColor(colorA1, colorA2, t);
       const mixedB = mixColor(colorB1, colorB2, t);
 
-      document.body.style.background = `linear-gradient(135deg, ${rgbToCss(
+      document.body.style.background = `linear-gradient(180deg, ${rgbToCss(
         mixedA
-      )}, ${rgbToCss(mixedB)})`;
+      )} 0%, ${rgbToCss(mixedB)} 100%)`;
       document.body.style.backgroundAttachment = "fixed";
 
       if (activePaletteIndex !== indexA1) {
         setActivePaletteIndex(indexA1);
-        localStorage.setItem("orbital-noir-bg-index", String(indexA1));
+        localStorage.setItem("orbital-noir-sunset-index", String(indexA1));
       }
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -193,7 +192,7 @@ export default function Home() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [autoMode, activePaletteIndex]);
+  }, [activePaletteIndex]);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -294,22 +293,21 @@ export default function Home() {
         </div>
 
         <div style={styles.paletteRow}>
-          {BACKGROUND_COLORS.map((color, index) => (
+          {SUNSET_COLORS.map((color, index) => (
             <button
               key={color}
               type="button"
-              title={`Farbe ${index + 1}`}
+              title={`Sunset ${index + 1}`}
               onClick={() => {
-                manualOffsetRef.current = index * 5000;
+                manualOffsetRef.current = index * 12000;
                 gradientStartRef.current = null;
                 setActivePaletteIndex(index);
-                setAutoMode(false);
-                localStorage.setItem("orbital-noir-bg-index", String(index));
+                localStorage.setItem("orbital-noir-sunset-index", String(index));
               }}
               style={{
                 ...styles.paletteButton,
-                background: `linear-gradient(135deg, ${color}, ${
-                  BACKGROUND_COLORS[(index + 1) % BACKGROUND_COLORS.length]
+                background: `linear-gradient(180deg, ${color}, ${
+                  SUNSET_COLORS[(index + 1) % SUNSET_COLORS.length]
                 })`,
                 border:
                   activePaletteIndex === index
@@ -373,11 +371,11 @@ export default function Home() {
 
         <section style={styles.hero}>
           <div style={styles.heroPanel}>
-            <div style={styles.microLabel}>Orbital-Noir / Deals</div>
-            <h1 style={styles.heroTitle}>Die besten Tech Deals – täglich aktualisiert.</h1>
+            <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
+            <h1 style={styles.heroTitle}>Tech Deals im warmen Sunset-Look.</h1>
             <p style={styles.heroText}>
-              Entdecke gefragte Technik-Produkte mit direktem Deal-Link, klarer Struktur
-              und schnellen Wegen zum Kauf.
+              Ein langsamer, fließender Hintergrund wie ein Sonnenuntergang:
+              von hellem Gelb über Gold und Orange bis tief ins Abendblau.
             </p>
 
             {!session ? (
@@ -392,7 +390,7 @@ export default function Home() {
           <div style={styles.heroPanel}>
             <div style={styles.frameTop}>
               <span style={styles.statusDot} />
-              <span>Live Deals & Trendprodukte</span>
+              <span>Sunset Flow aktiv</span>
             </div>
 
             <div style={styles.visualCore}>
@@ -400,10 +398,10 @@ export default function Home() {
               <div style={styles.ringB} />
               <div style={styles.ringC} />
               <div style={styles.coreCard}>
-                <div style={styles.coreKicker}>Conversion first</div>
-                <div style={styles.coreTitle}>Deals, Klicks, Sales</div>
+                <div style={styles.coreKicker}>Slow transition</div>
+                <div style={styles.coreTitle}>Golden Hour UI</div>
                 <div style={styles.coreText}>
-                  Fokussiert auf beliebte Produkte, schnelle Orientierung und klare Kauf-CTAs.
+                  Sanft gleitende Farbverläufe statt harter Farbwechsel – wie Sonne, die langsam untergeht.
                 </div>
               </div>
             </div>
@@ -441,7 +439,7 @@ export default function Home() {
 }
 
 const panelBase = {
-  background: "rgba(255,255,255,0.92)",
+  background: "rgba(255,255,255,0.88)",
   border: "1px solid rgba(255,255,255,0.5)",
   boxShadow: "0 18px 60px rgba(0,0,0,0.08)",
   backdropFilter: "blur(12px)",
@@ -464,7 +462,7 @@ const styles = {
     width: "420px",
     height: "420px",
     borderRadius: "999px",
-    background: "rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.18)",
     filter: "blur(80px)",
     pointerEvents: "none"
   },
@@ -485,7 +483,7 @@ const styles = {
     position: "fixed",
     inset: 0,
     pointerEvents: "none",
-    opacity: 0.05,
+    opacity: 0.04,
     backgroundImage:
       "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
     backgroundSize: "40px 40px"
