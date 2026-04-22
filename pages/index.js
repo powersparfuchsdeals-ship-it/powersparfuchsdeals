@@ -30,7 +30,8 @@ const CATEGORY_OPTIONS = [
   { value: "storage", label: "Storage" },
   { value: "office", label: "Office" },
   { value: "wearable", label: "Wearables" },
-  { value: "camera", label: "Kamera" }
+  { value: "camera", label: "Kamera" },
+  { value: "price-error", label: "Preisfehler" }
 ];
 
 export default function Home() {
@@ -110,7 +111,7 @@ export default function Home() {
 
       const matchesSearch =
         !q ||
-        [p.name, p.description, p.category, p.import_query]
+        [p.name, p.description, p.category, p.import_query, p.tag]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q));
 
@@ -134,6 +135,10 @@ export default function Home() {
           </a>
 
           <div style={styles.navLinks}>
+            <a href="/preisfehler" style={styles.topLink}>
+              Preisfehler
+            </a>
+
             {isAdmin ? (
               <a href="/admin" style={styles.topLink}>
                 Admin
