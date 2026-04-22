@@ -200,8 +200,8 @@ export default function Home() {
         }}
       />
 
-      <div style={styles.bgOrbA} />
-      <div style={styles.bgOrbB} />
+      
+      
       <div style={styles.gridNoise} />
 
       <header style={styles.topbarWrap}>
