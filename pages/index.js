@@ -142,12 +142,12 @@ export default function Home() {
 
             {session ? (
               <>
-                <a href="/admin" style={styles.topLink}>
-                  Konto
-                </a>
                 <button type="button" onClick={logout} style={styles.topButton}>
                   Logout
                 </button>
+                <a href="/admin" style={styles.topLinkSecondary}>
+                  Konto
+                </a>
               </>
             ) : (
               <>
@@ -194,47 +194,6 @@ export default function Home() {
       </header>
 
       <main style={styles.shell}>
-        <section style={styles.hero}>
-          <div style={styles.heroPanel}>
-            <div style={styles.microLabel}>Orbital-Noir / Deals</div>
-            <h1 style={styles.heroTitle}>Die besten Tech Deals – täglich aktualisiert.</h1>
-            <p style={styles.heroText}>
-              Entdecke gefragte Technik-Produkte mit direktem Deal-Link, klarer Struktur
-              und schnellen Wegen zum Kauf.
-            </p>
-
-            {!session ? (
-              <div style={styles.heroActions}>
-                <a href="/register" style={styles.ghostBtn}>
-                  Konto erstellen
-                </a>
-              </div>
-            ) : null}
-          </div>
-
-          <div style={styles.heroPanel}>
-            <div style={styles.frameTop}>
-              <span style={styles.statusDot} />
-              <span>Live Deals & Trendprodukte</span>
-            </div>
-
-            <div style={styles.visualCore}>
-              <div style={styles.ringA} />
-              <div style={styles.ringB} />
-              <div style={styles.ringC} />
-              <div style={styles.coreCard}>
-                <div style={styles.coreKicker}>Conversion first</div>
-                <div style={styles.coreTitle}>Deals, Klicks, Sales</div>
-                <div style={styles.coreText}>
-                  Fokussiert auf beliebte Produkte, schnelle Orientierung und klare Kauf-CTAs.
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <TopDealsSection products={products} trackClick={trackClick} />
-
         <section style={styles.filterWrap}>
           <div style={styles.filterHead}>
             <div>
@@ -280,14 +239,53 @@ export default function Home() {
           </div>
         </section>
 
+        <section style={styles.hero}>
+          <div style={styles.heroPanel}>
+            <div style={styles.microLabel}>Orbital-Noir / Deals</div>
+            <h1 style={styles.heroTitle}>Die besten Tech Deals – täglich aktualisiert.</h1>
+            <p style={styles.heroText}>
+              Entdecke gefragte Technik-Produkte mit direktem Deal-Link, klarer Struktur
+              und schnellen Wegen zum Kauf.
+            </p>
+
+            {!session ? (
+              <div style={styles.heroActions}>
+                <a href="/register" style={styles.ghostBtn}>
+                  Konto erstellen
+                </a>
+              </div>
+            ) : null}
+          </div>
+
+          <div style={styles.heroPanel}>
+            <div style={styles.frameTop}>
+              <span style={styles.statusDot} />
+              <span>Live Deals & Trendprodukte</span>
+            </div>
+
+            <div style={styles.visualCore}>
+              <div style={styles.ringA} />
+              <div style={styles.ringB} />
+              <div style={styles.ringC} />
+              <div style={styles.coreCard}>
+                <div style={styles.coreKicker}>Conversion first</div>
+                <div style={styles.coreTitle}>Deals, Klicks, Sales</div>
+                <div style={styles.coreText}>
+                  Fokussiert auf beliebte Produkte, schnelle Orientierung und klare Kauf-CTAs.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <TopDealsSection products={products} trackClick={trackClick} />
+
         <section style={styles.sectionHead}>
           <div>
             <div style={styles.microLabel}>Collection</div>
             <h2 style={styles.sectionTitle}>Aktuelle Produkte</h2>
           </div>
-          <p style={styles.sectionText}>
-            {filteredProducts.length} Produkte gefunden.
-          </p>
+          <p style={styles.sectionText}>{filteredProducts.length} Produkte gefunden.</p>
         </section>
 
         <section style={styles.shopGrid}>
@@ -405,6 +403,14 @@ const styles = {
     lineHeight: 1.2
   },
 
+  topLinkSecondary: {
+    color: "#6b7280",
+    textDecoration: "none",
+    fontSize: "15px",
+    fontWeight: 500,
+    lineHeight: 1.2
+  },
+
   topButton: {
     background: "transparent",
     border: "none",
@@ -439,6 +445,81 @@ const styles = {
     maxWidth: "1280px",
     margin: "0 auto",
     padding: "24px 16px 48px"
+  },
+
+  filterWrap: {
+    ...panelBase,
+    borderRadius: "22px",
+    padding: "22px",
+    marginBottom: "26px"
+  },
+
+  filterHead: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "end",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "16px"
+  },
+
+  filterBar: {
+    display: "grid",
+    gridTemplateColumns: "1.3fr 220px",
+    gap: "12px",
+    marginBottom: "14px"
+  },
+
+  searchInput: {
+    width: "100%",
+    minHeight: "46px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    padding: "0 14px",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  select: {
+    width: "100%",
+    minHeight: "46px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    padding: "0 14px",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  categoryPills: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap"
+  },
+
+  pill: {
+    minHeight: "36px",
+    padding: "0 12px",
+    borderRadius: "999px",
+    border: "1px solid #d1d5db",
+    background: "#f9fafb",
+    color: "#111827",
+    cursor: "pointer",
+    fontWeight: 500
+  },
+
+  pillActive: {
+    minHeight: "36px",
+    padding: "0 12px",
+    borderRadius: "999px",
+    border: "1px solid #111827",
+    background: "#111827",
+    color: "#ffffff",
+    cursor: "pointer",
+    fontWeight: 600
   },
 
   hero: {
@@ -583,81 +664,6 @@ const styles = {
     color: "#4b5563",
     fontSize: "15px",
     lineHeight: 1.6
-  },
-
-  filterWrap: {
-    ...panelBase,
-    borderRadius: "22px",
-    padding: "22px",
-    marginBottom: "26px"
-  },
-
-  filterHead: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "end",
-    gap: "16px",
-    flexWrap: "wrap",
-    marginBottom: "16px"
-  },
-
-  filterBar: {
-    display: "grid",
-    gridTemplateColumns: "1.3fr 220px",
-    gap: "12px",
-    marginBottom: "14px"
-  },
-
-  searchInput: {
-    width: "100%",
-    minHeight: "46px",
-    borderRadius: "12px",
-    border: "1px solid #d1d5db",
-    padding: "0 14px",
-    fontSize: "14px",
-    boxSizing: "border-box",
-    background: "#ffffff",
-    color: "#111827"
-  },
-
-  select: {
-    width: "100%",
-    minHeight: "46px",
-    borderRadius: "12px",
-    border: "1px solid #d1d5db",
-    padding: "0 14px",
-    fontSize: "14px",
-    boxSizing: "border-box",
-    background: "#ffffff",
-    color: "#111827"
-  },
-
-  categoryPills: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap"
-  },
-
-  pill: {
-    minHeight: "36px",
-    padding: "0 12px",
-    borderRadius: "999px",
-    border: "1px solid #d1d5db",
-    background: "#f9fafb",
-    color: "#111827",
-    cursor: "pointer",
-    fontWeight: 500
-  },
-
-  pillActive: {
-    minHeight: "36px",
-    padding: "0 12px",
-    borderRadius: "999px",
-    border: "1px solid #111827",
-    background: "#111827",
-    color: "#ffffff",
-    cursor: "pointer",
-    fontWeight: 600
   },
 
   sectionHead: {
