@@ -70,7 +70,14 @@ export default function TVAngebotePage() {
               }}
             >
               <img
-                src={product.image}
+                import Image from "next/image";
+
+<Image
+  src={product.image}
+  alt={product.name}
+  width={300}
+  height={200}
+/>
                 alt={product.name}
                 style={{ width: "100%", height: 160, objectFit: "cover" }}
               />
