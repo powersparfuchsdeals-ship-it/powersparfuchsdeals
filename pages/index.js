@@ -144,7 +144,7 @@ export default function Home() {
     const toA = hexToRgb(backgroundColor);
     const toB = hexToRgb(nextColor);
 
-    const duration = 12000;
+    const duration = 5000;
     let startTime = null;
 
     if (animationFrameRef.current) {
@@ -197,7 +197,7 @@ export default function Home() {
         setNextColor(BACKGROUND_COLORS[afterNextIndex]);
         return BACKGROUND_COLORS[nextIndex];
       });
-    }, 30 * 60 * 1000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [autoMode]);
