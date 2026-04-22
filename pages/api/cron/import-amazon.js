@@ -6,112 +6,53 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+/**
+ * Diese Query-Liste ist absichtlich kleiner und fokussierter.
+ * Mit DummyJSON bringen viele "echte" Tech-Begriffe kaum Treffer.
+ * Deshalb konzentrieren wir uns auf Begriffe, die eher Resultate liefern.
+ */
 const CATEGORY_QUERIES = {
-  tv: [
-    "4K Fernseher",
-    "OLED TV",
-    "QLED TV",
-    "Smart TV",
-    "Soundbar",
-    "Heimkino System",
-    "Streaming Stick"
-  ],
   smartphone: [
-    "Smartphone",
-    "Android Smartphone",
-    "Powerbank",
-    "Wireless Charger",
-    "USB C Ladegerät",
-    "Handyhülle",
-    "MagSafe Zubehör"
-  ],
-  audio: [
-    "Bluetooth Kopfhörer",
-    "Noise Cancelling Kopfhörer",
-    "In Ear Kopfhörer",
-    "Bluetooth Lautsprecher",
-    "USB Mikrofon",
-    "Gaming Headset"
+    "smartphone",
+    "phone",
+    "mobile",
+    "android"
   ],
   laptop: [
-    "Laptop",
-    "Gaming Laptop",
-    "Ultrabook",
-    "Mini PC",
-    "Tablet",
-    "2 in 1 Laptop"
-  ],
-  monitor: [
-    "Gaming Monitor",
-    "4K Monitor",
-    "Ultrawide Monitor",
-    "Office Monitor",
-    "Monitor Halterung"
-  ],
-  pc: [
-    "Mechanische Tastatur",
-    "Gaming Maus",
-    "Webcam",
-    "USB Hub",
-    "Docking Station",
-    "Externe SSD",
-    "Laptop Ständer"
-  ],
-  gaming: [
-    "Controller",
-    "Gaming Tastatur",
-    "Gaming Maus",
-    "Gaming Headset",
-    "Lenkrad Gaming",
-    "RGB Beleuchtung"
-  ],
-  smarthome: [
-    "WLAN Steckdose",
-    "Smart Lampe",
-    "Überwachungskamera WLAN",
-    "Video Türklingel",
-    "Smart Speaker",
-    "Thermostat WLAN"
-  ],
-  network: [
-    "WLAN Router",
-    "Mesh WLAN",
-    "Repeater WLAN",
-    "Access Point",
-    "Netzwerk Switch"
-  ],
-  storage: [
-    "SSD",
-    "NVMe SSD",
-    "Externe Festplatte",
-    "NAS Speicher",
-    "USB Stick",
-    "microSD Karte"
-  ],
-  office: [
-    "Drucker",
-    "Laserdrucker",
-    "Scanner",
-    "Grafiktablett",
-    "Ringlicht",
-    "Podcast Mikrofon"
+    "laptop",
+    "notebook"
   ],
   wearable: [
-    "Smartwatch",
-    "Fitness Tracker",
-    "Bluetooth Tracker"
+    "watch",
+    "smartwatch"
   ],
-  camera: [
-    "Action Cam",
-    "Dashcam",
-    "Überwachungskamera",
-    "Kamerastativ",
-    "Gimbal Smartphone"
+  pc: [
+    "keyboard",
+    "mouse"
+  ],
+  audio: [
+    "headphones",
+    "earbuds"
+  ],
+  storage: [
+    "tablet"
   ]
 };
 
-const MAX_PAGES_PER_QUERY = 4;
 const LIMIT_PER_PAGE = 24;
+const MAX_PAGES_PER_QUERY = 3;
+
+/**
+ * Wenn eine Query auf einer Seite nichts Neues bringt,
+ * brechen wir diese Query früh ab.
+ */
+const STOP_QUERY_AFTER_EMPTY_PAGE = true;
+
+/**
+ * Wenn zu viele Requests hintereinander keine neuen Produkte bringen,
+ * brechen wir den ganzen Job nicht ab, aber reduzieren Leerlauf.
+ */
+const MAX_CONSECUTIVE_NO_NEW = 8;
 
 function getBaseUrl(req) {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
@@ -126,7 +67,9 @@ function getBaseUrl(req) {
 }
 
 async function fetchAmazonFeed(baseUrl, query, page, limit) {
-  const url = `${baseUrl}/api/amazon-feed?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
+  const url =
+    `${baseUrl}/api/amazon-feed?q=${encodeURIComponent(query)}` +
+    `&page=${page}&limit=${limit}`;
 
   const res = await fetch(url, { method: "GET" });
   const data = await res.json().catch(() => null);
@@ -153,6 +96,18 @@ async function fetchAmazonFeed(baseUrl, query, page, limit) {
   };
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function makeRuntimeKey(item) {
+  const name = normalizeText(item.name);
+  const link = normalizeText(item.buy_link);
+  return `${name}__${link}`;
+}
+
 function enrichItems(items, category, query) {
   return items.map((item) => ({
     ...item,
@@ -160,6 +115,20 @@ function enrichItems(items, category, query) {
     source: item.source || "amazon",
     import_query: item.import_query || query
   }));
+}
+
+function dedupeItems(items) {
+  const map = new Map();
+
+  for (const item of items) {
+    const key = makeRuntimeKey(item);
+    if (!key || key === "__") continue;
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  }
+
+  return [...map.values()];
 }
 
 export default async function handler(req, res) {
@@ -187,9 +156,11 @@ export default async function handler(req, res) {
   let totalCreated = 0;
   let totalUpdated = 0;
   let totalSkipped = 0;
+  let consecutiveNoNew = 0;
 
   const stats = [];
   const errors = [];
+  const seenThisRun = new Set();
 
   try {
     for (const [category, queries] of Object.entries(CATEGORY_QUERIES)) {
@@ -199,6 +170,8 @@ export default async function handler(req, res) {
       let requests = 0;
 
       for (const query of queries) {
+        let queryHadNewItems = false;
+
         for (let page = 1; page <= MAX_PAGES_PER_QUERY; page++) {
           requests += 1;
 
@@ -215,15 +188,37 @@ export default async function handler(req, res) {
           }
 
           if (!feed.items.length) {
-            break;
+            if (STOP_QUERY_AFTER_EMPTY_PAGE) break;
+            continue;
           }
 
-          const items = enrichItems(feed.items, category, query);
+          let items = enrichItems(feed.items, category, query);
+          items = dedupeItems(items);
+
+          const freshItems = items.filter((item) => {
+            const key = makeRuntimeKey(item);
+            if (!key || key === "__") return false;
+            if (seenThisRun.has(key)) return false;
+            seenThisRun.add(key);
+            return true;
+          });
+
+          if (!freshItems.length) {
+            categorySkipped += items.length;
+            totalSkipped += items.length;
+            consecutiveNoNew += 1;
+
+            if (STOP_QUERY_AFTER_EMPTY_PAGE) {
+              break;
+            }
+
+            continue;
+          }
 
           try {
             const result = await importFeedRows({
               supabase: supabaseAdmin,
-              items,
+              items: freshItems,
               userId: null
             });
 
@@ -238,6 +233,13 @@ export default async function handler(req, res) {
             categoryCreated += created;
             categoryUpdated += updated;
             categorySkipped += skipped;
+
+            if (created > 0) {
+              queryHadNewItems = true;
+              consecutiveNoNew = 0;
+            } else {
+              consecutiveNoNew += 1;
+            }
           } catch (err) {
             errors.push({
               category,
@@ -246,6 +248,20 @@ export default async function handler(req, res) {
               error: err?.message || "importFeedRows fehlgeschlagen"
             });
           }
+
+          if (consecutiveNoNew >= MAX_CONSECUTIVE_NO_NEW) {
+            errors.push({
+              category,
+              query,
+              page,
+              error: "Zu viele aufeinanderfolgende Requests ohne neue Produkte, Query-Lauf gekürzt"
+            });
+            break;
+          }
+        }
+
+        if (!queryHadNewItems) {
+          // kein neuer Treffer für diese Query
         }
       }
 
@@ -262,6 +278,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       source: "amazon",
+      strategy: "focused-queries",
       limit_per_page: LIMIT_PER_PAGE,
       max_pages_per_query: MAX_PAGES_PER_QUERY,
       created: totalCreated,
@@ -276,6 +293,7 @@ export default async function handler(req, res) {
       ok: false,
       error: error?.message || "Cron Import fehlgeschlagen",
       source: "amazon",
+      strategy: "focused-queries",
       limit_per_page: LIMIT_PER_PAGE,
       max_pages_per_query: MAX_PAGES_PER_QUERY,
       created: totalCreated,
