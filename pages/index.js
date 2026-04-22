@@ -88,20 +88,21 @@ function rgbToCss(color) {
   return `rgb(${color.r}, ${color.g}, ${color.b})`;
 }
 
+function easeInOut(t) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [session, setSession] = useState(null);
-  const [backgroundColor, setBackgroundColor] = useState(BACKGROUND_COLORS[0]);
-  const [nextColor, setNextColor] = useState(BACKGROUND_COLORS[1]);
-  const [autoMode, setAutoMode] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [autoMode, setAutoMode] = useState(true);
+  const [activePaletteIndex, setActivePaletteIndex] = useState(0);
 
   const animationFrameRef = useRef(null);
-  const gradientRef = useRef({
-    colorA: BACKGROUND_COLORS[0],
-    colorB: BACKGROUND_COLORS[1]
-  });
+  const gradientStartRef = useRef(null);
+  const manualOffsetRef = useRef(0);
 
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
   const userEmail = (session?.user?.email || "").toLowerCase();
@@ -110,16 +111,14 @@ export default function Home() {
   useEffect(() => {
     loadProducts();
 
-    const savedColor = localStorage.getItem("orbital-noir-bg");
-    if (savedColor && BACKGROUND_COLORS.includes(savedColor)) {
-      const currentIndex = BACKGROUND_COLORS.indexOf(savedColor);
-      const nextIndex = (currentIndex + 1) % BACKGROUND_COLORS.length;
-      setBackgroundColor(savedColor);
-      setNextColor(BACKGROUND_COLORS[nextIndex]);
-      gradientRef.current = {
-        colorA: savedColor,
-        colorB: BACKGROUND_COLORS[nextIndex]
-      };
+    const savedIndex = Number(localStorage.getItem("orbital-noir-bg-index") || 0);
+    if (
+      Number.isFinite(savedIndex) &&
+      savedIndex >= 0 &&
+      savedIndex < BACKGROUND_COLORS.length
+    ) {
+      manualOffsetRef.current = savedIndex * 5000;
+      setActivePaletteIndex(savedIndex);
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -139,68 +138,62 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const fromA = hexToRgb(gradientRef.current.colorA);
-    const fromB = hexToRgb(gradientRef.current.colorB);
-    const toA = hexToRgb(backgroundColor);
-    const toB = hexToRgb(nextColor);
+    const STEP_DURATION = 5000;
 
-    const duration = 5000;
-    let startTime = null;
+    function animate(timestamp) {
+      if (!gradientStartRef.current) {
+        gradientStartRef.current = timestamp;
+      }
+
+      const elapsed = autoMode
+        ? timestamp - gradientStartRef.current
+        : manualOffsetRef.current + (timestamp - gradientStartRef.current);
+
+      const totalSteps = BACKGROUND_COLORS.length;
+      const rawStep = elapsed / STEP_DURATION;
+      const currentStep = Math.floor(rawStep) % totalSteps;
+      const progress = rawStep % 1;
+      const t = easeInOut(progress);
+
+      const indexA1 = currentStep % totalSteps;
+      const indexA2 = (currentStep + 1) % totalSteps;
+      const indexB1 = (currentStep + 1) % totalSteps;
+      const indexB2 = (currentStep + 2) % totalSteps;
+
+      const colorA1 = hexToRgb(BACKGROUND_COLORS[indexA1]);
+      const colorA2 = hexToRgb(BACKGROUND_COLORS[indexA2]);
+      const colorB1 = hexToRgb(BACKGROUND_COLORS[indexB1]);
+      const colorB2 = hexToRgb(BACKGROUND_COLORS[indexB2]);
+
+      const mixedA = mixColor(colorA1, colorA2, t);
+      const mixedB = mixColor(colorB1, colorB2, t);
+
+      document.body.style.background = `linear-gradient(135deg, ${rgbToCss(
+        mixedA
+      )}, ${rgbToCss(mixedB)})`;
+      document.body.style.backgroundAttachment = "fixed";
+
+      if (activePaletteIndex !== indexA1) {
+        setActivePaletteIndex(indexA1);
+        localStorage.setItem("orbital-noir-bg-index", String(indexA1));
+      }
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
 
-    function animate(timestamp) {
-      if (!startTime) startTime = timestamp;
-
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      const currentA = mixColor(fromA, toA, progress);
-      const currentB = mixColor(fromB, toB, progress);
-
-      document.body.style.background = `linear-gradient(135deg, ${rgbToCss(
-        currentA
-      )}, ${rgbToCss(currentB)})`;
-      document.body.style.backgroundAttachment = "fixed";
-
-      if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        gradientRef.current = {
-          colorA: backgroundColor,
-          colorB: nextColor
-        };
-      }
-    }
-
+    gradientStartRef.current = null;
     animationFrameRef.current = requestAnimationFrame(animate);
-    localStorage.setItem("orbital-noir-bg", backgroundColor);
 
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [backgroundColor, nextColor]);
-
-  useEffect(() => {
-    if (!autoMode) return;
-
-    const interval = setInterval(() => {
-      setBackgroundColor((prev) => {
-        const currentIndex = BACKGROUND_COLORS.indexOf(prev);
-        const nextIndex = (currentIndex + 1) % BACKGROUND_COLORS.length;
-        const afterNextIndex = (nextIndex + 1) % BACKGROUND_COLORS.length;
-
-        setNextColor(BACKGROUND_COLORS[afterNextIndex]);
-        return BACKGROUND_COLORS[nextIndex];
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [autoMode]);
+  }, [autoMode, activePaletteIndex]);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -307,10 +300,11 @@ export default function Home() {
               type="button"
               title={`Farbe ${index + 1}`}
               onClick={() => {
-                const nextIndex = (index + 1) % BACKGROUND_COLORS.length;
-                setBackgroundColor(color);
-                setNextColor(BACKGROUND_COLORS[nextIndex]);
+                manualOffsetRef.current = index * 5000;
+                gradientStartRef.current = null;
+                setActivePaletteIndex(index);
                 setAutoMode(false);
+                localStorage.setItem("orbital-noir-bg-index", String(index));
               }}
               style={{
                 ...styles.paletteButton,
@@ -318,11 +312,11 @@ export default function Home() {
                   BACKGROUND_COLORS[(index + 1) % BACKGROUND_COLORS.length]
                 })`,
                 border:
-                  backgroundColor === color
+                  activePaletteIndex === index
                     ? "2px solid #111827"
                     : "1px solid rgba(17,24,39,0.14)",
                 boxShadow:
-                  backgroundColor === color
+                  activePaletteIndex === index
                     ? "0 0 0 3px rgba(17,24,39,0.08)"
                     : "none"
               }}
