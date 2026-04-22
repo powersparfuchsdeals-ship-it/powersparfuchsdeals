@@ -1,3 +1,4 @@
+import ProductCard from "../components/ProductCard";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -14,8 +15,7 @@ const BACKGROUND_COLORS = [
   "#26354a"
 ];
 
-function ProductCard({ p, trackClick }) {
-  return (
+
     <article style={styles.shopCard}>
       <a style={styles.shopCardImage} href={`/product/${p.id}`}>
         <img
