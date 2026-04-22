@@ -390,8 +390,8 @@
   z-index: 0;
 
   animation:
-    sunsetFlow 300s linear forwards,
-    sunsetFlowReverse 300s linear 300s forwards;
+    sunsetFlow 600s linear forwards,
+    sunsetFlowReverse 600s linear 600s forwards;
 
   animation-iteration-count: infinite;
 }
