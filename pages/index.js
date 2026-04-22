@@ -1,3 +1,4 @@
+<div className="sunset-bg" />
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
