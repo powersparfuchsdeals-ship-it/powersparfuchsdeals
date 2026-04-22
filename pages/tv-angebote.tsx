@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 
 type Product = {
   id: string;
@@ -12,22 +11,7 @@ type Product = {
   merchant?: string;
 };
 
-export default function TVAngebotePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-
-  useEffect(() => {
-    fetch("/api/top-deals")
-      .then((res) => res.json())
-      .then((data) => {
-        const tvs = data.filter(
-          (p: Product) =>
-            p.name.toLowerCase().includes("tv") ||
-            p.name.toLowerCase().includes("fernseher")
-        );
-        setProducts(tvs.slice(0, 20));
-      });
-  }, []);
-
+export default function TVAngebotePage({ products }: { products: Product[] }) {
   return (
     <>
       <Head>
@@ -86,9 +70,13 @@ export default function TVAngebotePage() {
                 />
               </div>
 
-              <h3 style={{ fontSize: 14, marginTop: 10 }}>{product.name}</h3>
+              <h3 style={{ fontSize: 14, marginTop: 10 }}>
+                {product.name}
+              </h3>
 
-              <p style={{ fontWeight: "bold" }}>{product.price} €</p>
+              <p style={{ fontWeight: "bold" }}>
+                {product.price} €
+              </p>
 
               {product.tag === "preisfehler" && (
                 <span style={{ color: "red", fontWeight: "bold" }}>
@@ -107,4 +95,29 @@ export default function TVAngebotePage() {
       </main>
     </>
   );
+}
+
+export async function getServerSideProps() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/top-deals`);
+    const data = await res.json();
+
+    const tvs = data.filter(
+      (p: Product) =>
+        p.name.toLowerCase().includes("tv") ||
+        p.name.toLowerCase().includes("fernseher")
+    );
+
+    return {
+      props: {
+        products: tvs.slice(0, 20),
+      },
+    };
+  } catch (err) {
+    return {
+      props: {
+        products: [],
+      },
+    };
+  }
 }
