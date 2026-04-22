@@ -354,5 +354,46 @@
   opacity: 0.5;
   pointer-events: none;
 }
+@keyframes sunsetFlow {
+  0% {
+    background: linear-gradient(180deg, #fff3b0, #ffd166);
+  }
+  20% {
+    background: linear-gradient(180deg, #ffe08a, #ffbf69);
+  }
+  40% {
+    background: linear-gradient(180deg, #ffd166, #ff9f1c);
+  }
+  60% {
+    background: linear-gradient(180deg, #ff9f1c, #e76f51);
+  }
+  80% {
+    background: linear-gradient(180deg, #e76f51, #6d597a);
+  }
+  100% {
+    background: linear-gradient(180deg, #1d3557, #0b132b);
+  }
+}
+
+@keyframes sunsetFlowReverse {
+  0% {
+    background: linear-gradient(180deg, #1d3557, #0b132b);
+  }
+  100% {
+    background: linear-gradient(180deg, #fff3b0, #ffd166);
+  }
+}
+
+.sunset-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+
+  animation:
+    sunsetFlow 300s linear forwards,
+    sunsetFlowReverse 300s linear 300s forwards;
+
+  animation-iteration-count: infinite;
+}
 }
 
