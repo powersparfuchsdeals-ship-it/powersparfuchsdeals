@@ -14,7 +14,8 @@ const CATEGORY_OPTIONS = [
   { value: "storage", label: "Storage" },
   { value: "office", label: "Office" },
   { value: "wearable", label: "Wearables" },
-  { value: "camera", label: "Kamera" }
+  { value: "camera", label: "Kamera" },
+  { value: "price-error", label: "Preisfehler" }
 ];
 
 function getCategoryLabel(value) {
@@ -34,11 +35,14 @@ export default function Admin() {
   const [description, setDescription] = useState("");
   const [buyLink, setBuyLink] = useState("");
   const [category, setCategory] = useState("tv");
+  const [tag, setTag] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
 
   const [syncLoading, setSyncLoading] = useState(false);
+  const [priceErrorLoading, setPriceErrorLoading] = useState(false);
   const [syncData, setSyncData] = useState(null);
+  const [priceErrorData, setPriceErrorData] = useState(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -86,6 +90,7 @@ export default function Admin() {
     setDescription("");
     setBuyLink("");
     setCategory("tv");
+    setTag("");
     setFile(null);
     setPreview(null);
   }
@@ -97,6 +102,7 @@ export default function Admin() {
     setDescription(product.description || "");
     setBuyLink(product.buy_link || "");
     setCategory(product.category || "tv");
+    setTag(product.tag || "");
     setPreview(product.image || null);
     setFile(null);
     setMessage("");
@@ -132,7 +138,8 @@ export default function Admin() {
         price,
         description,
         buy_link: buyLink,
-        category
+        category,
+        tag: tag || null
       };
 
       if (imageUrl) payload.image = imageUrl;
@@ -156,6 +163,7 @@ export default function Admin() {
           description,
           buy_link: buyLink,
           category,
+          tag: tag || null,
           image: imageUrl,
           user_id: session.user.id
         }
@@ -201,7 +209,7 @@ export default function Admin() {
 
       if (data?.ok) {
         setMessage(
-          `Sync fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
+          `Amazon Sync fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
         );
         await loadProducts();
       } else {
@@ -215,13 +223,42 @@ export default function Admin() {
     }
   }
 
+  async function runPriceErrorImport() {
+    setPriceErrorLoading(true);
+    setPriceErrorData(null);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/admin/import-preisfehler", {
+        method: "POST"
+      });
+      const data = await res.json();
+
+      setPriceErrorData(data);
+
+      if (data?.ok) {
+        setMessage(
+          `Preisfehler-Import fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
+        );
+        await loadProducts();
+      } else {
+        setMessage(data?.error || "Preisfehler-Import fehlgeschlagen.");
+      }
+    } catch {
+      setPriceErrorData({ ok: false, error: "Fehler beim Preisfehler-Import" });
+      setMessage("Fehler beim Preisfehler-Import.");
+    } finally {
+      setPriceErrorLoading(false);
+    }
+  }
+
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     return products.filter((p) => {
       const matchesSearch =
         !q ||
-        [p.name, p.description, p.buy_link, p.category, String(p.price)]
+        [p.name, p.description, p.buy_link, p.category, p.tag, String(p.price)]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q));
 
@@ -252,14 +289,32 @@ export default function Admin() {
             <div style={styles.eyebrow}>Orbital-Noir / Admin</div>
             <h1 style={styles.mainTitle}>Admin</h1>
             <p style={styles.text}>
-              Produkte anlegen, kategorisieren, bearbeiten und den Import manuell starten.
+              Produkte anlegen, kategorisieren und beide Importe manuell starten.
             </p>
           </div>
 
           <div style={styles.headerActions}>
-            <button type="button" onClick={runManualSync} style={styles.primaryButton} disabled={syncLoading}>
-              {syncLoading ? "Sync läuft..." : "Amazon Cron ausführen"}
+            <button
+              type="button"
+              onClick={runManualSync}
+              style={styles.primaryButton}
+              disabled={syncLoading}
+            >
+              {syncLoading ? "Import läuft..." : "Amazon Cron ausführen"}
             </button>
+
+            <button
+              type="button"
+              onClick={runPriceErrorImport}
+              style={styles.warningButton}
+              disabled={priceErrorLoading}
+            >
+              {priceErrorLoading ? "Preisfehler läuft..." : "Preisfehler importieren"}
+            </button>
+
+            <a href="/preisfehler" style={styles.secondaryButton}>
+              Zur Preisfehler-Seite
+            </a>
 
             <a href="/" style={styles.secondaryButton}>
               Zum Shop
@@ -271,7 +326,15 @@ export default function Admin() {
 
         {syncData ? (
           <div style={styles.syncBox}>
+            <div style={styles.resultTitle}>Amazon Import Ergebnis</div>
             <pre style={styles.pre}>{JSON.stringify(syncData, null, 2)}</pre>
+          </div>
+        ) : null}
+
+        {priceErrorData ? (
+          <div style={styles.syncBox}>
+            <div style={styles.resultTitle}>Preisfehler Import Ergebnis</div>
+            <pre style={styles.pre}>{JSON.stringify(priceErrorData, null, 2)}</pre>
           </div>
         ) : null}
 
@@ -309,6 +372,13 @@ export default function Admin() {
                 </option>
               ))}
             </select>
+
+            <input
+              style={styles.input}
+              placeholder="Optionales Tag (z. B. preisfehler)"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+            />
 
             <textarea
               style={styles.textarea}
@@ -392,7 +462,10 @@ export default function Admin() {
                         <div>
                           <h3 style={styles.productTitle}>{product.name}</h3>
                           <div style={styles.productMeta}>
-                            {getCategoryLabel(product.category)} · {product.clicks || 0} Klicks
+                            {getCategoryLabel(product.category)}
+                            {product.tag ? ` · ${product.tag}` : ""}
+                            {" · "}
+                            {product.clicks || 0} Klicks
                           </div>
                         </div>
 
@@ -574,6 +647,21 @@ const styles = {
     fontWeight: 600
   },
 
+  warningButton: {
+    display: "inline-flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "44px",
+    padding: "0 16px",
+    borderRadius: "12px",
+    background: "#f59e0b",
+    color: "#ffffff",
+    border: "none",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontWeight: 600
+  },
+
   secondaryButton: {
     display: "inline-flex",
     justifyContent: "center",
@@ -641,6 +729,12 @@ const styles = {
     borderRadius: "16px",
     padding: "14px",
     overflowX: "auto"
+  },
+
+  resultTitle: {
+    fontWeight: 700,
+    marginBottom: "10px",
+    color: "#111827"
   },
 
   pre: {
