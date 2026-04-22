@@ -19,20 +19,19 @@ const CATEGORY_QUERIES = {
   smartphone: [
     "Smartphone",
     "Android Smartphone",
-    "Handyhülle",
     "Powerbank",
-    "USB C Ladegerät",
     "Wireless Charger",
-    "Smartphone Stativ"
+    "USB C Ladegerät",
+    "Handyhülle",
+    "MagSafe Zubehör"
   ],
   audio: [
     "Bluetooth Kopfhörer",
     "Noise Cancelling Kopfhörer",
     "In Ear Kopfhörer",
     "Bluetooth Lautsprecher",
-    "Studio Kopfhörer",
     "USB Mikrofon",
-    "Soundbar"
+    "Gaming Headset"
   ],
   laptop: [
     "Laptop",
@@ -59,15 +58,14 @@ const CATEGORY_QUERIES = {
     "Laptop Ständer"
   ],
   gaming: [
-    "Gaming Headset",
+    "Controller",
     "Gaming Tastatur",
     "Gaming Maus",
-    "Controller",
+    "Gaming Headset",
     "Lenkrad Gaming",
     "RGB Beleuchtung"
   ],
   smarthome: [
-    "Smart Home",
     "WLAN Steckdose",
     "Smart Lampe",
     "Überwachungskamera WLAN",
@@ -78,9 +76,9 @@ const CATEGORY_QUERIES = {
   network: [
     "WLAN Router",
     "Mesh WLAN",
+    "Repeater WLAN",
     "Access Point",
-    "Netzwerk Switch",
-    "Repeater WLAN"
+    "Netzwerk Switch"
   ],
   storage: [
     "SSD",
