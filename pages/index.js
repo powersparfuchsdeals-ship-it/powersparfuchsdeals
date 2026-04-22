@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
 import TopDealsSection from "../components/TopDealsSection";
@@ -34,6 +34,37 @@ const CATEGORY_OPTIONS = [
   { value: "price-error", label: "Preisfehler" }
 ];
 
+function hexToRgb(hex) {
+  const value = String(hex || "#000000").replace("#", "");
+  const normalized =
+    value.length === 3
+      ? value
+          .split("")
+          .map((char) => char + char)
+          .join("")
+      : value;
+
+  const int = parseInt(normalized, 16);
+
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255
+  };
+}
+
+function mixColor(a, b, t) {
+  return {
+    r: Math.round(a.r + (b.r - a.r) * t),
+    g: Math.round(a.g + (b.g - a.g) * t),
+    b: Math.round(a.b + (b.b - a.b) * t)
+  };
+}
+
+function rgbToCss(color) {
+  return `rgb(${color.r}, ${color.g}, ${color.b})`;
+}
+
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [session, setSession] = useState(null);
@@ -43,12 +74,30 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
 
+  const animationFrameRef = useRef(null);
+  const gradientRef = useRef({
+    colorA: BACKGROUND_COLORS[0],
+    colorB: BACKGROUND_COLORS[1]
+  });
+
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
   const userEmail = (session?.user?.email || "").toLowerCase();
   const isAdmin = !!userEmail && userEmail === adminEmail;
 
   useEffect(() => {
     loadProducts();
+
+    const savedColor = localStorage.getItem("orbital-noir-bg");
+    if (savedColor && BACKGROUND_COLORS.includes(savedColor)) {
+      const currentIndex = BACKGROUND_COLORS.indexOf(savedColor);
+      const nextIndex = (currentIndex + 1) % BACKGROUND_COLORS.length;
+      setBackgroundColor(savedColor);
+      setNextColor(BACKGROUND_COLORS[nextIndex]);
+      gradientRef.current = {
+        colorA: savedColor,
+        colorB: BACKGROUND_COLORS[nextIndex]
+      };
+    }
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
@@ -58,12 +107,60 @@ export default function Home() {
       setSession(s ?? null);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
-    document.body.style.background = `linear-gradient(135deg, ${backgroundColor}, ${nextColor})`;
-    document.body.style.transition = "background 4s ease-in-out";
+    const fromA = hexToRgb(gradientRef.current.colorA);
+    const fromB = hexToRgb(gradientRef.current.colorB);
+    const toA = hexToRgb(backgroundColor);
+    const toB = hexToRgb(nextColor);
+
+    const duration = 12000;
+    let startTime = null;
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    function animate(timestamp) {
+      if (!startTime) startTime = timestamp;
+
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const currentA = mixColor(fromA, toA, progress);
+      const currentB = mixColor(fromB, toB, progress);
+
+      document.body.style.background = `linear-gradient(135deg, ${rgbToCss(
+        currentA
+      )}, ${rgbToCss(currentB)})`;
+      document.body.style.backgroundAttachment = "fixed";
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        gradientRef.current = {
+          colorA: backgroundColor,
+          colorB: nextColor
+        };
+      }
+    }
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    localStorage.setItem("orbital-noir-bg", backgroundColor);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, [backgroundColor, nextColor]);
 
   useEffect(() => {
@@ -71,12 +168,14 @@ export default function Home() {
 
     const interval = setInterval(() => {
       setBackgroundColor((prev) => {
-        const i = BACKGROUND_COLORS.indexOf(prev);
-        const next = (i + 1) % BACKGROUND_COLORS.length;
-        setNextColor(BACKGROUND_COLORS[(next + 1) % BACKGROUND_COLORS.length]);
-        return BACKGROUND_COLORS[next];
+        const currentIndex = BACKGROUND_COLORS.indexOf(prev);
+        const nextIndex = (currentIndex + 1) % BACKGROUND_COLORS.length;
+        const afterNextIndex = (nextIndex + 1) % BACKGROUND_COLORS.length;
+
+        setNextColor(BACKGROUND_COLORS[afterNextIndex]);
+        return BACKGROUND_COLORS[nextIndex];
       });
-    }, 1800000);
+    }, 30 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [autoMode]);
