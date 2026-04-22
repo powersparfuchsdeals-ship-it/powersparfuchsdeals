@@ -22,7 +22,7 @@ const CATEGORY_QUERIES = {
   camera: ["Action Cam", "Dashcam", "Überwachungskamera", "Kamerastativ", "Gimbal Smartphone"]
 };
 
-const MAX_PAGES_PER_QUERY = 4;
+const MAX_PAGES_PER_QUERY = 6;
 
 function getBaseUrl(req) {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
