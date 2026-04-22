@@ -1,10 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+const CATEGORY_OPTIONS = [
+  { value: "tv", label: "TV" },
+  { value: "smartphone", label: "Smartphones" },
+  { value: "audio", label: "Audio" },
+  { value: "laptop", label: "Laptops" },
+  { value: "monitor", label: "Monitore" },
+  { value: "pc", label: "PC Zubehör" },
+  { value: "gaming", label: "Gaming" },
+  { value: "smarthome", label: "Smart Home" },
+  { value: "network", label: "Netzwerk" },
+  { value: "storage", label: "Storage" },
+  { value: "office", label: "Office" },
+  { value: "wearable", label: "Wearables" },
+  { value: "camera", label: "Kamera" }
+];
+
+function getCategoryLabel(value) {
+  return CATEGORY_OPTIONS.find((item) => item.value === value)?.label || "Ohne Kategorie";
+}
+
 export default function Admin() {
   const [session, setSession] = useState(null);
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [message, setMessage] = useState("");
 
   const [editingId, setEditingId] = useState(null);
@@ -12,15 +33,19 @@ export default function Admin() {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [buyLink, setBuyLink] = useState("");
+  const [category, setCategory] = useState("tv");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncData, setSyncData] = useState(null);
 
   useEffect(() => {
     if (!supabase) return;
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) {
-        window.location.href = "/login";
+        window.location.href = "/login?redirect=/admin";
         return;
       }
 
@@ -60,6 +85,7 @@ export default function Admin() {
     setPrice("");
     setDescription("");
     setBuyLink("");
+    setCategory("tv");
     setFile(null);
     setPreview(null);
   }
@@ -67,11 +93,13 @@ export default function Admin() {
   function editProduct(product) {
     setEditingId(product.id);
     setName(product.name || "");
-    setPrice(product.price || "");
+    setPrice(String(product.price || ""));
     setDescription(product.description || "");
     setBuyLink(product.buy_link || "");
+    setCategory(product.category || "tv");
     setPreview(product.image || null);
     setFile(null);
+    setMessage("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -103,12 +131,11 @@ export default function Admin() {
         name,
         price,
         description,
-        buy_link: buyLink
+        buy_link: buyLink,
+        category
       };
 
-      if (imageUrl) {
-        payload.image = imageUrl;
-      }
+      if (imageUrl) payload.image = imageUrl;
 
       const { error } = await supabase
         .from("products")
@@ -128,6 +155,7 @@ export default function Admin() {
           price,
           description,
           buy_link: buyLink,
+          category,
           image: imageUrl,
           user_id: session.user.id
         }
@@ -160,24 +188,56 @@ export default function Admin() {
     await loadProducts();
   }
 
+  async function runManualSync() {
+    setSyncLoading(true);
+    setSyncData(null);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/cron/import-amazon");
+      const data = await res.json();
+
+      setSyncData(data);
+
+      if (data?.ok) {
+        setMessage(
+          `Sync fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
+        );
+        await loadProducts();
+      } else {
+        setMessage(data?.error || "Sync fehlgeschlagen.");
+      }
+    } catch {
+      setSyncData({ ok: false, error: "Fehler beim Sync" });
+      setMessage("Fehler beim Sync.");
+    } finally {
+      setSyncLoading(false);
+    }
+  }
+
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
 
-    return products.filter((p) =>
-      [p.name, p.description, p.buy_link, String(p.price)]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [products, search]);
+    return products.filter((p) => {
+      const matchesSearch =
+        !q ||
+        [p.name, p.description, p.buy_link, p.category, String(p.price)]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q));
+
+      const matchesCategory =
+        categoryFilter === "all" ||
+        String(p.category || "").toLowerCase() === categoryFilter;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, categoryFilter]);
 
   if (!supabase) {
     return (
       <div style={styles.centerWrap}>
         <h1 style={styles.title}>Supabase fehlt</h1>
-        <p style={styles.text}>
-          Prüfe deine ENV Variablen für Supabase.
-        </p>
+        <p style={styles.text}>Prüfe deine ENV Variablen für Supabase.</p>
       </div>
     );
   }
@@ -191,13 +251,29 @@ export default function Admin() {
           <div>
             <div style={styles.eyebrow}>Orbital-Noir / Admin</div>
             <h1 style={styles.mainTitle}>Admin</h1>
-            <p style={styles.text}>Produkte anlegen, bearbeiten und löschen.</p>
+            <p style={styles.text}>
+              Produkte anlegen, kategorisieren, bearbeiten und den Import manuell starten.
+            </p>
           </div>
 
-          <a href="/" style={styles.secondaryButton}>
-            Zum Shop
-          </a>
+          <div style={styles.headerActions}>
+            <button type="button" onClick={runManualSync} style={styles.primaryButton} disabled={syncLoading}>
+              {syncLoading ? "Sync läuft..." : "Amazon Cron ausführen"}
+            </button>
+
+            <a href="/" style={styles.secondaryButton}>
+              Zum Shop
+            </a>
+          </div>
         </header>
+
+        {message ? <div style={styles.message}>{message}</div> : null}
+
+        {syncData ? (
+          <div style={styles.syncBox}>
+            <pre style={styles.pre}>{JSON.stringify(syncData, null, 2)}</pre>
+          </div>
+        ) : null}
 
         <section style={styles.grid}>
           <section style={styles.panel}>
@@ -221,6 +297,18 @@ export default function Admin() {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
+
+            <select
+              style={styles.select}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
             <textarea
               style={styles.textarea}
@@ -255,8 +343,6 @@ export default function Admin() {
                 </button>
               ) : null}
             </div>
-
-            {message ? <div style={styles.message}>{message}</div> : null}
           </section>
 
           <section style={styles.panel}>
@@ -266,12 +352,27 @@ export default function Admin() {
                 <h2 style={styles.sectionTitle}>Liste</h2>
               </div>
 
-              <input
-                style={styles.searchInput}
-                placeholder="Suchen..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <div style={styles.filters}>
+                <input
+                  style={styles.searchInput}
+                  placeholder="Suchen..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+
+                <select
+                  style={styles.filterSelect}
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="all">Alle Kategorien</option>
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {filteredProducts.length === 0 ? (
@@ -291,7 +392,7 @@ export default function Admin() {
                         <div>
                           <h3 style={styles.productTitle}>{product.name}</h3>
                           <div style={styles.productMeta}>
-                            {product.clicks || 0} Klicks
+                            {getCategoryLabel(product.category)} · {product.clicks || 0} Klicks
                           </div>
                         </div>
 
@@ -363,6 +464,12 @@ const styles = {
     marginBottom: "18px"
   },
 
+  headerActions: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap"
+  },
+
   grid: {
     display: "grid",
     gridTemplateColumns: "1fr 1.2fr",
@@ -417,6 +524,19 @@ const styles = {
     width: "100%",
     marginBottom: "12px",
     padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  select: {
+    width: "100%",
+    marginBottom: "12px",
+    minHeight: "46px",
+    padding: "0 14px",
     borderRadius: "12px",
     border: "1px solid #d1d5db",
     fontSize: "14px",
@@ -506,12 +626,29 @@ const styles = {
   },
 
   message: {
-    marginTop: "14px",
+    marginBottom: "14px",
     padding: "12px 14px",
     borderRadius: "12px",
     background: "#f3f4f6",
     color: "#111827",
     border: "1px solid #e5e7eb"
+  },
+
+  syncBox: {
+    marginBottom: "18px",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "16px",
+    padding: "14px",
+    overflowX: "auto"
+  },
+
+  pre: {
+    margin: 0,
+    whiteSpace: "pre-wrap",
+    color: "#111827",
+    fontSize: "13px",
+    lineHeight: 1.5
   },
 
   listHeader: {
@@ -523,10 +660,27 @@ const styles = {
     marginBottom: "14px"
   },
 
+  filters: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap"
+  },
+
   searchInput: {
     width: "260px",
     maxWidth: "100%",
     padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#111827"
+  },
+
+  filterSelect: {
+    minHeight: "46px",
+    padding: "0 14px",
     borderRadius: "12px",
     border: "1px solid #d1d5db",
     fontSize: "14px",
