@@ -108,7 +108,14 @@ export default function Admin() {
     setMessage("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+  async function runFeaturedImport() {
+  const res = await fetch("/api/admin/import-featured", {
+    method: "POST"
+  });
 
+  const data = await res.json();
+  console.log(data);
+}
   async function saveProduct() {
     if (!session?.user) return;
 
@@ -302,7 +309,9 @@ export default function Admin() {
             >
               {syncLoading ? "Import läuft..." : "Amazon Cron ausführen"}
             </button>
-
+            <button onClick={runFeaturedImport} style={styles.primaryButton}>
+  Featured Import
+</button>
             <button
               type="button"
               onClick={runPriceErrorImport}
