@@ -1,4 +1,5 @@
 <div className="sunset-bg" />
+<div style={styles.vignette} />  
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
