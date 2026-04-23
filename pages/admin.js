@@ -18,6 +18,7 @@ const SUNSET_GRADIENTS = [
 ];
 
 const STEP_DURATION_MS = 5 * 60 * 1000;
+const COMMISSION_RATE = 0.03;
 
 function formatPrice(value) {
   const n = Number(value || 0);
@@ -30,22 +31,13 @@ function hoursAgo(dateString) {
 }
 
 function getRevenue(product) {
-  const commissionRate = 0.03;
-  return (product.price || 0) * (product.clicks || 0) * commissionRate;
+  return Number(product.price || 0) * Number(product.clicks || 0) * COMMISSION_RATE;
 }
-<h2>💸 Einnahmen</h2>
-
-{products.slice(0, 10).map((p) => (
-  <div key={p.id}>
-    {p.name} → {getRevenue(p).toFixed(2)} €
-  </div>
-))}
 
 export default function AdminPage() {
   const [session, setSession] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
-
   const [products, setProducts] = useState([]);
   const [trackingEvents, setTrackingEvents] = useState([]);
 
@@ -57,6 +49,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const savedIndex = Number(localStorage.getItem("orbital-noir-sunset-index") || 0);
+
     if (
       Number.isFinite(savedIndex) &&
       savedIndex >= 0 &&
@@ -144,9 +137,7 @@ export default function AdminPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setShowLayerA((prevShowLayerA) => {
-        const currentIndex = Number(
-          localStorage.getItem("orbital-noir-sunset-index") || 0
-        );
+        const currentIndex = Number(localStorage.getItem("orbital-noir-sunset-index") || 0);
         const nextIndex = (currentIndex + 1) % SUNSET_GRADIENTS.length;
         const afterNextIndex = (nextIndex + 1) % SUNSET_GRADIENTS.length;
 
@@ -170,9 +161,7 @@ export default function AdminPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error) {
-      setProducts(data || []);
-    }
+    if (!error) setProducts(data || []);
   }
 
   async function loadTracking() {
@@ -182,9 +171,7 @@ export default function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(5000);
 
-    if (!error) {
-      setTrackingEvents(data || []);
-    }
+    if (!error) setTrackingEvents(data || []);
   }
 
   async function logout() {
@@ -207,6 +194,7 @@ export default function AdminPage() {
 
   const todayTrackingClicks = useMemo(() => {
     const since = Date.now() - 24 * 60 * 60 * 1000;
+
     return trackingEvents.filter(
       (event) =>
         event.type === "click" &&
@@ -234,7 +222,8 @@ export default function AdminPage() {
         ...product,
         trackingClicks,
         dbClicks,
-        dashboardScore: score
+        dashboardScore: score,
+        estimatedRevenue: getRevenue(product)
       };
     });
   }, [products, trackingClickMap]);
@@ -243,6 +232,12 @@ export default function AdminPage() {
     return [...dashboardProducts]
       .sort((a, b) => b.dashboardScore - a.dashboardScore)
       .slice(0, 8);
+  }, [dashboardProducts]);
+
+  const moneyProducts = useMemo(() => {
+    return [...dashboardProducts]
+      .sort((a, b) => b.estimatedRevenue - a.estimatedRevenue)
+      .slice(0, 10);
   }, [dashboardProducts]);
 
   const weakProducts = useMemo(() => {
@@ -272,46 +267,44 @@ export default function AdminPage() {
 
   const stats = useMemo(() => {
     const totalProducts = products.length;
+
     const totalDbClicks = products.reduce(
       (sum, product) => sum + Number(product.clicks || 0),
       0
     );
+
     const totalTrackingClicks = trackingEvents.filter((e) => e.type === "click").length;
+
     const featuredCount = products.filter(
       (p) => String(p.tag || "").toLowerCase() === "featured"
     ).length;
+
     const priceErrorCount = products.filter(
       (p) =>
         String(p.tag || "").toLowerCase() === "preisfehler" ||
         String(p.category || "").toLowerCase() === "price-error"
     ).length;
 
+    const estimatedRevenue = products.reduce(
+      (sum, product) => sum + getRevenue(product),
+      0
+    );
+
     return {
       totalProducts,
       totalDbClicks,
       totalTrackingClicks,
       featuredCount,
-      priceErrorCount
+      priceErrorCount,
+      estimatedRevenue
     };
   }, [products, trackingEvents]);
 
   if (!isReady) {
     return (
       <div style={styles.page}>
-        <div
-          style={{
-            ...styles.gradientLayer,
-            background: gradientA,
-            opacity: showLayerA ? 1 : 0
-          }}
-        />
-        <div
-          style={{
-            ...styles.gradientLayer,
-            background: gradientB,
-            opacity: showLayerA ? 0 : 1
-          }}
-        />
+        <div style={{ ...styles.gradientLayer, background: gradientA, opacity: showLayerA ? 1 : 0 }} />
+        <div style={{ ...styles.gradientLayer, background: gradientB, opacity: showLayerA ? 0 : 1 }} />
         <div style={styles.vignette} />
         <div style={styles.gridNoise} />
         <div style={styles.loadingWrap}>
@@ -321,46 +314,24 @@ export default function AdminPage() {
     );
   }
 
-  if (!session || !isAllowed) {
-    return null;
-  }
+  if (!session || !isAllowed) return null;
 
   return (
     <div style={styles.page}>
-      <div
-        style={{
-          ...styles.gradientLayer,
-          background: gradientA,
-          opacity: showLayerA ? 1 : 0
-        }}
-      />
-      <div
-        style={{
-          ...styles.gradientLayer,
-          background: gradientB,
-          opacity: showLayerA ? 0 : 1
-        }}
-      />
+      <div style={{ ...styles.gradientLayer, background: gradientA, opacity: showLayerA ? 1 : 0 }} />
+      <div style={{ ...styles.gradientLayer, background: gradientB, opacity: showLayerA ? 0 : 1 }} />
 
       <div style={styles.vignette} />
       <div style={styles.gridNoise} />
 
       <header style={styles.topbarWrap}>
         <div style={styles.topbar}>
-          <a href="/" style={styles.brand}>
-            Orbital-Noir
-          </a>
+          <a href="/" style={styles.brand}>Orbital-Noir</a>
 
           <div style={styles.navLinks}>
-            <a href="/" style={styles.topLink}>
-              Shop
-            </a>
-            <a href="/preisfehler" style={styles.topLink}>
-              Preisfehler
-            </a>
-            <button type="button" onClick={logout} style={styles.topButton}>
-              Logout
-            </button>
+            <a href="/" style={styles.topLink}>Shop</a>
+            <a href="/preisfehler" style={styles.topLink}>Preisfehler</a>
+            <button type="button" onClick={logout} style={styles.topButton}>Logout</button>
           </div>
         </div>
       </header>
@@ -372,16 +343,12 @@ export default function AdminPage() {
             <h1 style={styles.heroTitle}>Dashboard im Sunset-Modus.</h1>
             <p style={styles.heroText}>
               Hier siehst du echte Performance-Daten aus Produkten und Tracking-Events:
-              Top Performer, schwache Produkte und aktuelle Trends.
+              Top Performer, Einnahmen-Schätzung, schwache Produkte und aktuelle Trends.
             </p>
 
             <div style={styles.heroActions}>
-              <a href="/" style={styles.ghostBtn}>
-                Zum Shop
-              </a>
-              <a href="/preisfehler" style={styles.ghostBtn}>
-                Preisfehler
-              </a>
+              <a href="/" style={styles.ghostBtn}>Zum Shop</a>
+              <a href="/preisfehler" style={styles.ghostBtn}>Preisfehler</a>
             </div>
           </div>
 
@@ -399,7 +366,7 @@ export default function AdminPage() {
                 <div style={styles.coreKicker}>Control Center</div>
                 <div style={styles.coreTitle}>Products + Tracking</div>
                 <div style={styles.coreText}>
-                  Eine Übersicht für Ranking, Klicks und Conversion-Signale in einem Dashboard.
+                  Ranking, Klicks und geschätzte Affiliate-Einnahmen in einem Dashboard.
                 </div>
               </div>
             </div>
@@ -430,6 +397,40 @@ export default function AdminPage() {
           <div style={styles.statCard}>
             <div style={styles.statLabel}>Preisfehler</div>
             <div style={styles.statValue}>{stats.priceErrorCount}</div>
+          </div>
+
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>geschätzte Einnahmen</div>
+            <div style={styles.statValue}>{formatPrice(stats.estimatedRevenue)}</div>
+          </div>
+        </section>
+
+        <section style={styles.sectionBlock}>
+          <div style={styles.sectionHead}>
+            <div>
+              <div style={styles.microLabel}>Money</div>
+              <h2 style={styles.sectionTitle}>Geschätzte Einnahmen</h2>
+            </div>
+            <p style={styles.sectionText}>Basierend auf 3% geschätzter Provision.</p>
+          </div>
+
+          <div style={styles.list}>
+            {moneyProducts.length === 0 ? (
+              <div style={styles.emptyMini}>Noch keine Einnahmen-Daten vorhanden.</div>
+            ) : (
+              moneyProducts.map((product) => (
+                <div key={product.id} style={styles.listRow}>
+                  <div style={styles.listMain}>
+                    <div style={styles.listTitle}>{product.name}</div>
+                    <div style={styles.listMeta}>
+                      {product.dbClicks} Klicks · {formatPrice(product.price)}
+                    </div>
+                  </div>
+
+                  <div style={styles.listPrice}>{formatPrice(product.estimatedRevenue)}</div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
