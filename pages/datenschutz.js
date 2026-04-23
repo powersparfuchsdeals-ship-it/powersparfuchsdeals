@@ -67,7 +67,7 @@ export default function DatenschutzPage() {
             <p style={styles.text}>
               Bei Fragen zum Datenschutz:
               <br />
-              E-Mail: info@deinedomain.de
+              E-Mail: info@orbital-noir.com
             </p>
           </section>
 
