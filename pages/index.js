@@ -19,8 +19,7 @@ const SUNSET_GRADIENTS = [
   "linear-gradient(180deg, #ffd166 0%, #fff7c2 100%)"
 ];
 
-const STEP_DURATION_MS = 5 * 60 * 1000; // 5 Minuten pro Übergang
-// 12 Übergänge * 5 Minuten = 60 Minuten kompletter Durchgang
+const STEP_DURATION_MS = 5 * 60 * 1000;
 
 const CATEGORY_OPTIONS = [
   { value: "all", label: "Alle" },
@@ -297,9 +296,7 @@ export default function Home() {
         <section style={styles.hero}>
           <div style={styles.heroPanel}>
             <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
-            <h1 style={styles.heroTitle}>
-              Tech Deals im ruhigen Sunset-Verlauf.
-            </h1>
+            <h1 style={styles.heroTitle}>Tech Deals im ruhigen Sunset-Verlauf.</h1>
             <p style={styles.heroText}>
               Der Hintergrund läuft jetzt automatisch ganz langsam von hell über
               goldene und warme Abendfarben bis ins Dunkle — und wieder zurück.
@@ -362,23 +359,6 @@ export default function Home() {
             ))
           )}
         </section>
-      </main>
-    </div>
-<section style={styles.shopGrid}>
-          {sortedProducts.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.microLabel}>Keine Treffer</div>
-              <h3 style={styles.emptyTitle}>Keine Produkte gefunden</h3>
-              <p style={styles.emptyText}>
-                Versuche eine andere Suche oder wähle eine andere Kategorie.
-              </p>
-            </div>
-          ) : (
-            sortedProducts.map((p) => (
-              <ProductCard key={p.id} p={p} trackClick={trackClick} />
-            ))
-          )}
-        </section>
 
         <footer style={styles.footer}>
           <a href="/impressum" style={styles.footerLink}>
@@ -391,7 +371,6 @@ export default function Home() {
         </footer>
       </main>
     </div>
-  );
   );
 }
 
@@ -782,6 +761,29 @@ const styles = {
     marginBottom: "18px",
     color: "#4b5563",
     lineHeight: 1.6
+  },
+
+  footer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "10px",
+    padding: "10px 0 30px",
+    position: "relative",
+    zIndex: 2
+  },
+
+  footerLink: {
+    color: "#374151",
+    textDecoration: "none",
+    fontSize: "14px",
+    fontWeight: 500
+  },
+
+  footerDot: {
+    color: "#6b7280",
+    fontSize: "14px"
   }
 };
-        
