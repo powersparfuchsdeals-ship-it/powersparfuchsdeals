@@ -41,7 +41,7 @@ const CATEGORY_OPTIONS = [
   { value: "price-error", label: "Preisfehler" }
 ];
 
-function getProductScore(product) {
+function getFallbackScore(product) {
   let score = 0;
 
   const clicks = Number(product.clicks || 0);
@@ -67,6 +67,7 @@ function getProductScore(product) {
 
 export default function Home() {
   const [products, setProducts] = useState([]);
+  const [topDeals, setTopDeals] = useState([]);
   const [session, setSession] = useState(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -82,6 +83,7 @@ export default function Home() {
 
   useEffect(() => {
     loadProducts();
+    loadTopDeals();
 
     const savedIndex = Number(localStorage.getItem("orbital-noir-sunset-index") || 0);
     if (
@@ -148,6 +150,19 @@ export default function Home() {
     }
   }
 
+  async function loadTopDeals() {
+    try {
+      const res = await fetch("/api/top-deals?limit=8");
+      const data = await res.json();
+
+      if (data?.ok) {
+        setTopDeals(data.items || []);
+      }
+    } catch (error) {
+      console.error("Top deals load error:", error);
+    }
+  }
+
   async function handleClick(product) {
     trackClick(product);
 
@@ -155,6 +170,26 @@ export default function Home() {
       .from("products")
       .update({ clicks: Number(product.clicks || 0) + 1 })
       .eq("id", product.id);
+
+    setProducts((prev) =>
+      prev.map((item) =>
+        item.id === product.id
+          ? { ...item, clicks: Number(item.clicks || 0) + 1 }
+          : item
+      )
+    );
+
+    setTopDeals((prev) =>
+      prev.map((item) =>
+        item.id === product.id
+          ? {
+              ...item,
+              clicks: Number(item.clicks || 0) + 1,
+              tracking_clicks: Number(item.tracking_clicks || 0) + 1
+            }
+          : item
+      )
+    );
   }
 
   async function logout() {
@@ -181,13 +216,16 @@ export default function Home() {
 
   const sortedProducts = useMemo(() => {
     return [...filteredProducts]
-      .map((p) => ({ ...p, score: getProductScore(p) }))
+      .map((p) => ({
+        ...p,
+        score: Number(p.deal_score || 0) || getFallbackScore(p)
+      }))
       .sort((a, b) => b.score - a.score);
   }, [filteredProducts]);
 
-  const topDealProducts = useMemo(() => {
+  const fallbackTopDeals = useMemo(() => {
     return [...products]
-      .map((p) => ({ ...p, score: getProductScore(p) }))
+      .map((p) => ({ ...p, score: getFallbackScore(p) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 8);
   }, [products]);
@@ -301,12 +339,12 @@ export default function Home() {
 
           <section style={styles.hero}>
             <div style={styles.heroPanel}>
-              <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
-              <h1 style={styles.heroTitle}>Tech Deals im ruhigen Sunset-Verlauf.</h1>
+              <div style={styles.microLabel}>Orbital-Noir / Deals Engine 2.0</div>
+              <h1 style={styles.heroTitle}>Top Deals jetzt mit echter Tracking-Logik.</h1>
               <p style={styles.heroText}>
-                Der Hintergrund läuft jetzt automatisch ganz langsam von hell über
-                goldene und warme Abendfarben bis ins Dunkle — und wieder zurück.
-                Ein kompletter Durchgang dauert 60 Minuten.
+                Produkte werden jetzt nicht nur nach statischen Klicks sortiert,
+                sondern zusätzlich nach echten Tracking-Events, Frische, Preis,
+                Featured-Boost und Preisfehler-Signal.
               </p>
 
               {!session ? (
@@ -321,7 +359,7 @@ export default function Home() {
             <div style={styles.heroPanel}>
               <div style={styles.frameTop}>
                 <span style={styles.statusDot} />
-                <span>60-Minuten Sunset Flow aktiv</span>
+                <span>Deals Engine 2.0 aktiv</span>
               </div>
 
               <div style={styles.visualCore}>
@@ -329,18 +367,21 @@ export default function Home() {
                 <div style={styles.ringB} />
                 <div style={styles.ringC} />
                 <div style={styles.coreCard}>
-                  <div style={styles.coreKicker}>Very slow transition</div>
-                  <div style={styles.coreTitle}>Golden Hour UI</div>
+                  <div style={styles.coreKicker}>Ranking System</div>
+                  <div style={styles.coreTitle}>Clicks + Tracking + Freshness</div>
                   <div style={styles.coreText}>
-                    Der Verlauf blendet weich und fast unmerklich weiter — wie ein
-                    echter Sonnenuntergang über längere Zeit.
+                    Das Ranking reagiert jetzt auf echtes Nutzerverhalten und ist
+                    deutlich näher an echter Conversion.
                   </div>
                 </div>
               </div>
             </div>
           </section>
 
-          <TopDealsSection products={topDealProducts} trackClick={handleClick} />
+          <TopDealsSection
+            products={topDeals.length > 0 ? topDeals : fallbackTopDeals}
+            trackClick={handleClick}
+          />
 
           <section style={styles.sectionHead}>
             <div>
