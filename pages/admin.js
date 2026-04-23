@@ -31,7 +31,8 @@ function hoursAgo(dateString) {
 
 export default function AdminPage() {
   const [session, setSession] = useState(null);
-  const [checking, setChecking] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  const [isAllowed, setIsAllowed] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [trackingEvents, setTrackingEvents] = useState([]);
@@ -41,8 +42,6 @@ export default function AdminPage() {
   const [showLayerA, setShowLayerA] = useState(true);
 
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
-  const userEmail = (session?.user?.email || "").toLowerCase();
-  const isAdmin = !!userEmail && userEmail === adminEmail;
 
   useEffect(() => {
     const savedIndex = Number(localStorage.getItem("orbital-noir-sunset-index") || 0);
@@ -57,39 +56,66 @@ export default function AdminPage() {
       setShowLayerA(true);
     }
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    document.body.style.background = "#1d3557";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.margin = "0";
+
+    let mounted = true;
+
+    async function boot() {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      if (error) {
+        setIsReady(true);
+        setIsAllowed(false);
+        return;
+      }
+
       const nextSession = data.session ?? null;
       setSession(nextSession);
-      setChecking(false);
-
-      const nextUserEmail = (nextSession?.user?.email || "").toLowerCase();
-      const nextIsAdmin = !!nextUserEmail && nextUserEmail === adminEmail;
 
       if (!nextSession) {
         window.location.href = "/login";
         return;
       }
 
-      if (!nextIsAdmin) {
+      const userEmail = (nextSession.user?.email || "").toLowerCase();
+      const allowed = !!adminEmail && userEmail === adminEmail;
+
+      setIsAllowed(allowed);
+      setIsReady(true);
+
+      if (!allowed) {
         window.location.href = "/";
         return;
       }
 
       await Promise.all([loadProducts(), loadTracking()]);
-    });
+    }
+
+    boot();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (!mounted) return;
+
       setSession(nextSession ?? null);
 
-      const nextUserEmail = (nextSession?.user?.email || "").toLowerCase();
-      const nextIsAdmin = !!nextUserEmail && nextUserEmail === adminEmail;
-
       if (!nextSession) {
+        setIsAllowed(false);
+        setIsReady(true);
         window.location.href = "/login";
         return;
       }
 
-      if (!nextIsAdmin) {
+      const userEmail = (nextSession.user?.email || "").toLowerCase();
+      const allowed = !!adminEmail && userEmail === adminEmail;
+
+      setIsAllowed(allowed);
+      setIsReady(true);
+
+      if (!allowed) {
         window.location.href = "/";
         return;
       }
@@ -98,15 +124,10 @@ export default function AdminPage() {
     });
 
     return () => {
+      mounted = false;
       listener.subscription.unsubscribe();
     };
   }, [adminEmail]);
-
-  useEffect(() => {
-    document.body.style.background = "#1d3557";
-    document.body.style.backgroundAttachment = "fixed";
-    document.body.style.margin = "0";
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -262,7 +283,7 @@ export default function AdminPage() {
     };
   }, [products, trackingEvents]);
 
-  if (checking || !session || !isAdmin) {
+  if (!isReady) {
     return (
       <div style={styles.page}>
         <div
@@ -281,12 +302,15 @@ export default function AdminPage() {
         />
         <div style={styles.vignette} />
         <div style={styles.gridNoise} />
-
         <div style={styles.loadingWrap}>
           <div style={styles.loadingCard}>Admin Dashboard wird geladen…</div>
         </div>
       </div>
     );
+  }
+
+  if (!session || !isAllowed) {
+    return null;
   }
 
   return (
@@ -449,9 +473,7 @@ export default function AdminPage() {
                   <div key={product.id} style={styles.listRow}>
                     <div style={styles.listMain}>
                       <div style={styles.listTitle}>{product.name}</div>
-                      <div style={styles.listMeta}>
-                        {product.todayClicks} Klicks heute
-                      </div>
+                      <div style={styles.listMeta}>{product.todayClicks} Klicks heute</div>
                     </div>
                     <div style={styles.listPrice}>{formatPrice(product.price)}</div>
                   </div>
@@ -485,38 +507,6 @@ export default function AdminPage() {
             )}
           </div>
         </section>
-
-        <section style={styles.sectionBlock}>
-          <div style={styles.sectionHead}>
-            <div>
-              <div style={styles.microLabel}>Aktionen</div>
-              <h2 style={styles.sectionTitle}>Schnellzugriff</h2>
-            </div>
-            <p style={styles.sectionText}>Wichtige Bereiche deines Projekts direkt öffnen.</p>
-          </div>
-
-          <div style={styles.quickGrid}>
-            <a href="/" style={styles.quickCard}>
-              <div style={styles.quickTitle}>Shop öffnen</div>
-              <div style={styles.quickText}>Zur Hauptseite mit Deals und Produkten.</div>
-            </a>
-
-            <a href="/preisfehler" style={styles.quickCard}>
-              <div style={styles.quickTitle}>Preisfehler</div>
-              <div style={styles.quickText}>Direkt zur Preisfehler-Seite wechseln.</div>
-            </a>
-
-            <a href="/impressum" style={styles.quickCard}>
-              <div style={styles.quickTitle}>Impressum</div>
-              <div style={styles.quickText}>Rechtliche Seite prüfen oder anpassen.</div>
-            </a>
-
-            <a href="/datenschutz" style={styles.quickCard}>
-              <div style={styles.quickTitle}>Datenschutz</div>
-              <div style={styles.quickText}>DSGVO-Text und Hinweise kontrollieren.</div>
-            </a>
-          </div>
-        </section>
       </main>
     </div>
   );
@@ -538,7 +528,6 @@ const styles = {
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   },
-
   gradientLayer: {
     position: "fixed",
     inset: 0,
@@ -547,7 +536,6 @@ const styles = {
     willChange: "opacity",
     pointerEvents: "none"
   },
-
   vignette: {
     position: "fixed",
     inset: 0,
@@ -557,7 +545,6 @@ const styles = {
       "radial-gradient(circle at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.45) 100%)",
     mixBlendMode: "multiply"
   },
-
   gridNoise: {
     position: "fixed",
     inset: 0,
@@ -568,7 +555,6 @@ const styles = {
       "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
     backgroundSize: "40px 40px"
   },
-
   topbarWrap: {
     position: "relative",
     zIndex: 2,
@@ -576,7 +562,6 @@ const styles = {
     margin: "0 auto",
     padding: "20px 16px 0"
   },
-
   topbar: {
     ...panelBase,
     borderRadius: "18px",
@@ -587,7 +572,6 @@ const styles = {
     gap: "20px",
     flexWrap: "wrap"
   },
-
   brand: {
     color: "#111827",
     textDecoration: "none",
@@ -595,7 +579,6 @@ const styles = {
     fontWeight: 700,
     letterSpacing: "-0.03em"
   },
-
   navLinks: {
     display: "flex",
     alignItems: "center",
@@ -604,7 +587,6 @@ const styles = {
     marginLeft: "auto",
     flexWrap: "wrap"
   },
-
   topLink: {
     color: "#111827",
     textDecoration: "none",
@@ -612,7 +594,6 @@ const styles = {
     fontWeight: 500,
     lineHeight: 1.2
   },
-
   topButton: {
     background: "transparent",
     border: "none",
@@ -624,7 +605,6 @@ const styles = {
     cursor: "pointer",
     lineHeight: 1.2
   },
-
   shell: {
     position: "relative",
     zIndex: 2,
@@ -632,20 +612,17 @@ const styles = {
     margin: "0 auto",
     padding: "24px 16px 48px"
   },
-
   hero: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: "20px",
     marginBottom: "26px"
   },
-
   heroPanel: {
     ...panelBase,
     borderRadius: "24px",
     padding: "28px"
   },
-
   microLabel: {
     color: "#6b7280",
     fontSize: "12px",
@@ -654,7 +631,6 @@ const styles = {
     fontWeight: 700,
     marginBottom: "12px"
   },
-
   heroTitle: {
     margin: 0,
     color: "#111827",
@@ -662,7 +638,6 @@ const styles = {
     lineHeight: 1.02,
     letterSpacing: "-0.05em"
   },
-
   heroText: {
     marginTop: "16px",
     marginBottom: 0,
@@ -671,14 +646,12 @@ const styles = {
     lineHeight: 1.65,
     maxWidth: "56ch"
   },
-
   heroActions: {
     display: "flex",
     gap: "12px",
     marginTop: "22px",
     flexWrap: "wrap"
   },
-
   ghostBtn: {
     display: "inline-flex",
     alignItems: "center",
@@ -692,7 +665,6 @@ const styles = {
     border: "1px solid rgba(17,24,39,0.12)",
     fontWeight: 600
   },
-
   frameTop: {
     display: "flex",
     alignItems: "center",
@@ -701,7 +673,6 @@ const styles = {
     fontSize: "14px",
     marginBottom: "20px"
   },
-
   statusDot: {
     width: "10px",
     height: "10px",
@@ -709,7 +680,6 @@ const styles = {
     background: "#111827",
     display: "inline-block"
   },
-
   visualCore: {
     position: "relative",
     height: "320px",
@@ -718,28 +688,24 @@ const styles = {
     overflow: "hidden",
     border: "1px solid rgba(17,24,39,0.06)"
   },
-
   ringA: {
     position: "absolute",
     inset: "40px",
     borderRadius: "999px",
     border: "1px solid rgba(17,24,39,0.12)"
   },
-
   ringB: {
     position: "absolute",
     inset: "72px",
     borderRadius: "999px",
     border: "1px solid rgba(17,24,39,0.1)"
   },
-
   ringC: {
     position: "absolute",
     inset: "104px",
     borderRadius: "999px",
     border: "1px solid rgba(17,24,39,0.08)"
   },
-
   coreCard: {
     position: "absolute",
     left: "50%",
@@ -753,7 +719,6 @@ const styles = {
     boxShadow: "0 18px 60px rgba(17,24,39,0.08)",
     textAlign: "center"
   },
-
   coreKicker: {
     color: "#6b7280",
     fontSize: "12px",
@@ -762,7 +727,6 @@ const styles = {
     marginBottom: "8px",
     fontWeight: 700
   },
-
   coreTitle: {
     color: "#111827",
     fontSize: "24px",
@@ -770,47 +734,40 @@ const styles = {
     letterSpacing: "-0.03em",
     marginBottom: "10px"
   },
-
   coreText: {
     color: "#4b5563",
     fontSize: "15px",
     lineHeight: 1.6
   },
-
   statsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
     gap: "16px",
     marginBottom: "26px"
   },
-
   statCard: {
     ...panelBase,
     borderRadius: "20px",
     padding: "20px"
   },
-
   statLabel: {
     color: "#6b7280",
     fontSize: "13px",
     marginBottom: "8px",
     fontWeight: 600
   },
-
   statValue: {
     color: "#111827",
     fontSize: "34px",
     fontWeight: 800,
     letterSpacing: "-0.04em"
   },
-
   sectionBlock: {
     ...panelBase,
     borderRadius: "24px",
     padding: "24px",
     marginBottom: "24px"
   },
-
   sectionHead: {
     display: "flex",
     justifyContent: "space-between",
@@ -819,40 +776,33 @@ const styles = {
     flexWrap: "wrap",
     marginBottom: "16px"
   },
-
   sectionHeadCompact: {
     marginBottom: "14px"
   },
-
   sectionTitle: {
     margin: 0,
     color: "#111827",
     fontSize: "32px",
     letterSpacing: "-0.04em"
   },
-
   sectionTitleSmall: {
     margin: 0,
     color: "#111827",
     fontSize: "24px",
     letterSpacing: "-0.03em"
   },
-
   sectionText: {
     margin: 0,
     color: "#4b5563",
     fontSize: "15px"
   },
-
   tableWrap: {
     overflowX: "auto"
   },
-
   table: {
     width: "100%",
     borderCollapse: "collapse"
   },
-
   th: {
     textAlign: "left",
     padding: "12px 10px",
@@ -861,7 +811,6 @@ const styles = {
     fontSize: "13px",
     fontWeight: 700
   },
-
   td: {
     padding: "14px 10px",
     borderBottom: "1px solid #f3f4f6",
@@ -869,7 +818,6 @@ const styles = {
     fontSize: "14px",
     verticalAlign: "top"
   },
-
   tdStrong: {
     padding: "14px 10px",
     borderBottom: "1px solid #f3f4f6",
@@ -878,31 +826,26 @@ const styles = {
     fontWeight: 700,
     verticalAlign: "top"
   },
-
   gridTwo: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: "20px",
     marginBottom: "24px"
   },
-
   panel: {
     ...panelBase,
     borderRadius: "24px",
     padding: "24px"
   },
-
   emptyMini: {
     color: "#6b7280",
     lineHeight: 1.6
   },
-
   list: {
     display: "flex",
     flexDirection: "column",
     gap: "12px"
   },
-
   listRow: {
     display: "flex",
     justifyContent: "space-between",
@@ -911,57 +854,24 @@ const styles = {
     paddingBottom: "12px",
     borderBottom: "1px solid #f3f4f6"
   },
-
   listMain: {
     minWidth: 0
   },
-
   listTitle: {
     color: "#111827",
     fontWeight: 600,
     lineHeight: 1.4
   },
-
   listMeta: {
     color: "#6b7280",
     fontSize: "13px",
     marginTop: "4px"
   },
-
   listPrice: {
     color: "#111827",
     fontWeight: 700,
     whiteSpace: "nowrap"
   },
-
-  quickGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "16px"
-  },
-
-  quickCard: {
-    display: "block",
-    textDecoration: "none",
-    color: "#111827",
-    background: "rgba(255,255,255,0.72)",
-    border: "1px solid rgba(17,24,39,0.08)",
-    borderRadius: "18px",
-    padding: "18px"
-  },
-
-  quickTitle: {
-    fontSize: "18px",
-    fontWeight: 700,
-    marginBottom: "8px"
-  },
-
-  quickText: {
-    color: "#4b5563",
-    lineHeight: 1.6,
-    fontSize: "14px"
-  },
-
   loadingWrap: {
     minHeight: "100vh",
     display: "flex",
@@ -971,7 +881,6 @@ const styles = {
     zIndex: 2,
     padding: "24px"
   },
-
   loadingCard: {
     ...panelBase,
     borderRadius: "20px",
