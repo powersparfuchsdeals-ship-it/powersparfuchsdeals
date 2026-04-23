@@ -70,12 +70,12 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-
   const [gradientA, setGradientA] = useState(SUNSET_GRADIENTS[0]);
   const [gradientB, setGradientB] = useState(SUNSET_GRADIENTS[1]);
   const [showLayerA, setShowLayerA] = useState(true);
+
   const { trackClick } = useTracking();
-  
+
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
   const userEmail = (session?.user?.email || "").toLowerCase();
   const isAdmin = !!userEmail && userEmail === adminEmail;
@@ -149,13 +149,13 @@ export default function Home() {
   }
 
   async function handleClick(product) {
-  trackClick(product);
+    trackClick(product);
 
-  await supabase
-    .from("products")
-    .update({ clicks: Number(product.clicks || 0) + 1 })
-    .eq("id", product.id);
-}
+    await supabase
+      .from("products")
+      .update({ clicks: Number(product.clicks || 0) + 1 })
+      .eq("id", product.id);
+  }
 
   async function logout() {
     await supabase.auth.signOut();
@@ -193,190 +193,193 @@ export default function Home() {
   }, [products]);
 
   return (
-   <CookieBanner /> 
-    <div style={styles.page}>
-      <div
-        style={{
-          ...styles.gradientLayer,
-          background: gradientA,
-          opacity: showLayerA ? 1 : 0
-        }}
-      />
-      <div
-        style={{
-          ...styles.gradientLayer,
-          background: gradientB,
-          opacity: showLayerA ? 0 : 1
-        }}
-      />
+    <>
+      <div style={styles.page}>
+        <div
+          style={{
+            ...styles.gradientLayer,
+            background: gradientA,
+            opacity: showLayerA ? 1 : 0
+          }}
+        />
+        <div
+          style={{
+            ...styles.gradientLayer,
+            background: gradientB,
+            opacity: showLayerA ? 0 : 1
+          }}
+        />
 
-      <div style={styles.vignette} />
-      <div style={styles.gridNoise} />
+        <div style={styles.vignette} />
+        <div style={styles.gridNoise} />
 
-      <header style={styles.topbarWrap}>
-        <div style={styles.topbar}>
-          <a href="/" style={styles.brand}>
-            Orbital-Noir
-          </a>
-
-          <div style={styles.navLinks}>
-            <a href="/preisfehler" style={styles.topLink}>
-              Preisfehler
+        <header style={styles.topbarWrap}>
+          <div style={styles.topbar}>
+            <a href="/" style={styles.brand}>
+              Orbital-Noir
             </a>
 
-            {isAdmin ? (
-              <a href="/admin" style={styles.topLink}>
-                Admin
+            <div style={styles.navLinks}>
+              <a href="/preisfehler" style={styles.topLink}>
+                Preisfehler
               </a>
-            ) : null}
 
-            {session ? (
-              <>
-                <button type="button" onClick={logout} style={styles.topButton}>
-                  Logout
-                </button>
-                <a href="/admin" style={styles.topLinkSecondary}>
-                  Konto
+              {isAdmin ? (
+                <a href="/admin" style={styles.topLink}>
+                  Admin
                 </a>
-              </>
-            ) : (
-              <>
-                <a href="/login" style={styles.topLink}>
-                  Login
-                </a>
-                <a href="/register" style={styles.topLink}>
-                  Register
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+              ) : null}
 
-      <main style={styles.shell}>
-        <section style={styles.filterWrap}>
-          <div style={styles.filterHead}>
-            <div>
-              <div style={styles.microLabel}>Filter</div>
-              <h2 style={styles.sectionTitle}>Produkte finden</h2>
+              {session ? (
+                <>
+                  <button type="button" onClick={logout} style={styles.topButton}>
+                    Logout
+                  </button>
+                  <a href="/admin" style={styles.topLinkSecondary}>
+                    Konto
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a href="/login" style={styles.topLink}>
+                    Login
+                  </a>
+                  <a href="/register" style={styles.topLink}>
+                    Register
+                  </a>
+                </>
+              )}
             </div>
-            <p style={styles.sectionText}>Suche nach Kategorie, Produkt oder Schlagwort.</p>
           </div>
+        </header>
 
-          <div style={styles.filterBar}>
-            <input
-              type="text"
-              placeholder="Suche nach Produkt..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={styles.searchInput}
-            />
-
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              style={styles.select}
-            >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.categoryPills}>
-            {CATEGORY_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setCategory(option.value)}
-                style={category === option.value ? styles.pillActive : styles.pill}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section style={styles.hero}>
-          <div style={styles.heroPanel}>
-            <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
-            <h1 style={styles.heroTitle}>Tech Deals im ruhigen Sunset-Verlauf.</h1>
-            <p style={styles.heroText}>
-              Der Hintergrund läuft jetzt automatisch ganz langsam von hell über
-              goldene und warme Abendfarben bis ins Dunkle — und wieder zurück.
-              Ein kompletter Durchgang dauert 60 Minuten.
-            </p>
-
-            {!session ? (
-              <div style={styles.heroActions}>
-                <a href="/register" style={styles.ghostBtn}>
-                  Konto erstellen
-                </a>
+        <main style={styles.shell}>
+          <section style={styles.filterWrap}>
+            <div style={styles.filterHead}>
+              <div>
+                <div style={styles.microLabel}>Filter</div>
+                <h2 style={styles.sectionTitle}>Produkte finden</h2>
               </div>
-            ) : null}
-          </div>
-
-          <div style={styles.heroPanel}>
-            <div style={styles.frameTop}>
-              <span style={styles.statusDot} />
-              <span>60-Minuten Sunset Flow aktiv</span>
+              <p style={styles.sectionText}>Suche nach Kategorie, Produkt oder Schlagwort.</p>
             </div>
 
-            <div style={styles.visualCore}>
-              <div style={styles.ringA} />
-              <div style={styles.ringB} />
-              <div style={styles.ringC} />
-              <div style={styles.coreCard}>
-                <div style={styles.coreKicker}>Very slow transition</div>
-                <div style={styles.coreTitle}>Golden Hour UI</div>
-                <div style={styles.coreText}>
-                  Der Verlauf blendet weich und fast unmerklich weiter — wie ein
-                  echter Sonnenuntergang über längere Zeit.
+            <div style={styles.filterBar}>
+              <input
+                type="text"
+                placeholder="Suche nach Produkt..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={styles.searchInput}
+              />
+
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                style={styles.select}
+              >
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={styles.categoryPills}>
+              {CATEGORY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setCategory(option.value)}
+                  style={category === option.value ? styles.pillActive : styles.pill}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section style={styles.hero}>
+            <div style={styles.heroPanel}>
+              <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
+              <h1 style={styles.heroTitle}>Tech Deals im ruhigen Sunset-Verlauf.</h1>
+              <p style={styles.heroText}>
+                Der Hintergrund läuft jetzt automatisch ganz langsam von hell über
+                goldene und warme Abendfarben bis ins Dunkle — und wieder zurück.
+                Ein kompletter Durchgang dauert 60 Minuten.
+              </p>
+
+              {!session ? (
+                <div style={styles.heroActions}>
+                  <a href="/register" style={styles.ghostBtn}>
+                    Konto erstellen
+                  </a>
+                </div>
+              ) : null}
+            </div>
+
+            <div style={styles.heroPanel}>
+              <div style={styles.frameTop}>
+                <span style={styles.statusDot} />
+                <span>60-Minuten Sunset Flow aktiv</span>
+              </div>
+
+              <div style={styles.visualCore}>
+                <div style={styles.ringA} />
+                <div style={styles.ringB} />
+                <div style={styles.ringC} />
+                <div style={styles.coreCard}>
+                  <div style={styles.coreKicker}>Very slow transition</div>
+                  <div style={styles.coreTitle}>Golden Hour UI</div>
+                  <div style={styles.coreText}>
+                    Der Verlauf blendet weich und fast unmerklich weiter — wie ein
+                    echter Sonnenuntergang über längere Zeit.
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <TopDealsSection products={topDealProducts} trackClick={trackClick} />
+          <TopDealsSection products={topDealProducts} trackClick={handleClick} />
 
-        <section style={styles.sectionHead}>
-          <div>
-            <div style={styles.microLabel}>Collection</div>
-            <h2 style={styles.sectionTitle}>Aktuelle Produkte</h2>
-          </div>
-          <p style={styles.sectionText}>{sortedProducts.length} Produkte gefunden.</p>
-        </section>
-
-        <section style={styles.shopGrid}>
-          {sortedProducts.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.microLabel}>Keine Treffer</div>
-              <h3 style={styles.emptyTitle}>Keine Produkte gefunden</h3>
-              <p style={styles.emptyText}>
-                Versuche eine andere Suche oder wähle eine andere Kategorie.
-              </p>
+          <section style={styles.sectionHead}>
+            <div>
+              <div style={styles.microLabel}>Collection</div>
+              <h2 style={styles.sectionTitle}>Aktuelle Produkte</h2>
             </div>
-          ) : (
-            sortedProducts.map((p) => (
-           <ProductCard key={p.id} p={p} trackClick={handleClick} />
-            ))
-          )}
-        </section>
+            <p style={styles.sectionText}>{sortedProducts.length} Produkte gefunden.</p>
+          </section>
 
-        <footer style={styles.footer}>
-          <a href="/impressum" style={styles.footerLink}>
-            Impressum
-          </a>
-          <span style={styles.footerDot}>•</span>
-          <a href="/datenschutz" style={styles.footerLink}>
-            Datenschutz
-          </a>
-        </footer>
-      </main>
-    </div>
+          <section style={styles.shopGrid}>
+            {sortedProducts.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={styles.microLabel}>Keine Treffer</div>
+                <h3 style={styles.emptyTitle}>Keine Produkte gefunden</h3>
+                <p style={styles.emptyText}>
+                  Versuche eine andere Suche oder wähle eine andere Kategorie.
+                </p>
+              </div>
+            ) : (
+              sortedProducts.map((p) => (
+                <ProductCard key={p.id} p={p} trackClick={handleClick} />
+              ))
+            )}
+          </section>
+
+          <footer style={styles.footer}>
+            <a href="/impressum" style={styles.footerLink}>
+              Impressum
+            </a>
+            <span style={styles.footerDot}>•</span>
+            <a href="/datenschutz" style={styles.footerLink}>
+              Datenschutz
+            </a>
+          </footer>
+        </main>
+      </div>
+
+      <CookieBanner />
+    </>
   );
 }
 
