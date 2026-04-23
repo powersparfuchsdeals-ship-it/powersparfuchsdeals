@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
 import TopDealsSection from "../components/TopDealsSection";
+import CookieBanner from "../components/CookieBanner";
+import { useTracking } from "../lib/useTracking";
 
 const SUNSET_GRADIENTS = [
   "linear-gradient(180deg, #fff7c2 0%, #ffe08a 100%)",
