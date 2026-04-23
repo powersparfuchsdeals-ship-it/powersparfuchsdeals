@@ -193,6 +193,7 @@ export default function Home() {
   }, [products]);
 
   return (
+   <CookieBanner /> 
     <div style={styles.page}>
       <div
         style={{
@@ -360,7 +361,7 @@ export default function Home() {
             </div>
           ) : (
             sortedProducts.map((p) => (
-              <ProductCard key={p.id} p={p} trackClick={trackClick} />
+           <ProductCard key={p.id} p={p} trackClick={handleClick} />
             ))
           )}
         </section>
