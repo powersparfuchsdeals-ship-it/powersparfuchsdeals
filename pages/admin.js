@@ -29,6 +29,18 @@ function hoursAgo(dateString) {
   return Math.max(0, (Date.now() - time) / 1000 / 60 / 60);
 }
 
+function getRevenue(product) {
+  const commissionRate = 0.03;
+  return (product.price || 0) * (product.clicks || 0) * commissionRate;
+}
+<h2>💸 Einnahmen</h2>
+
+{products.slice(0, 10).map((p) => (
+  <div key={p.id}>
+    {p.name} → {getRevenue(p).toFixed(2)} €
+  </div>
+))}
+
 export default function AdminPage() {
   const [session, setSession] = useState(null);
   const [isReady, setIsReady] = useState(false);
