@@ -14,6 +14,19 @@ const CATEGORIES = [
   { value: "price-error", label: "Preisfehler" }
 ];
 
+function isGoodDeal(product) {
+  const price = Number(product.price || 0);
+  const name = String(product.name || "").trim();
+  const buyLink = String(product.buy_link || product.link || "").trim();
+
+  if (!name || name.length < 5) return false;
+  if (!price || price <= 0) return false;
+  if (price > 5000) return false;
+  if (!buyLink) return false;
+
+  return true;
+}
+
 function getDealScore(product) {
   let score = 0;
 
@@ -22,26 +35,27 @@ function getDealScore(product) {
   const tag = String(product.tag || "").toLowerCase();
   const category = String(product.category || "").toLowerCase();
 
-  score += Math.min(clicks, 100) * 3;
+  score += Math.min(clicks, 150) * 3;
 
-  if (tag === "featured") score += 200;
-  if (tag === "preisfehler") score += 300;
-  if (category === "price-error") score += 220;
+  if (tag === "featured") score += 220;
+  if (tag === "preisfehler") score += 340;
+  if (category === "price-error") score += 240;
 
-  if (price > 20 && price < 300) score += 80;
-  if (price > 0 && price < 10) score += 50;
-  if (price >= 300 && price <= 900) score += 40;
+  if (price > 20 && price < 300) score += 110;
+  if (price > 0 && price < 10) score += 55;
+  if (price >= 300 && price <= 900) score += 55;
 
   const created = new Date(product.created_at || Date.now());
   const ageHours = (Date.now() - created.getTime()) / 1000 / 60 / 60;
 
-  if (ageHours < 24) score += 120;
-  else if (ageHours < 72) score += 70;
-  else if (ageHours < 168) score += 35;
+  if (ageHours < 24) score += 150;
+  else if (ageHours < 72) score += 90;
+  else if (ageHours < 168) score += 45;
 
-  if (product.image) score += 15;
-  if (product.buy_link) score += 20;
-  if (product.description) score += 15;
+  if (product.image) score += 25;
+  if (product.buy_link || product.link) score += 35;
+  if (product.description) score += 20;
+  if (product.merchant) score += 15;
 
   return score;
 }
@@ -83,6 +97,7 @@ export default function DealsPage() {
 
   const scoredProducts = useMemo(() => {
     return [...products]
+      .filter(isGoodDeal)
       .map((p) => ({ ...p, deal_score: getDealScore(p) }))
       .sort((a, b) => b.deal_score - a.deal_score);
   }, [products]);
@@ -92,16 +107,16 @@ export default function DealsPage() {
 
     return scoredProducts.filter((p) => {
       const productCategory = String(p.category || "").toLowerCase();
+      const tag = String(p.tag || "").toLowerCase();
 
       const matchesCategory =
         category === "all" ||
         productCategory === category ||
-        (category === "price-error" &&
-          String(p.tag || "").toLowerCase() === "preisfehler");
+        (category === "price-error" && tag === "preisfehler");
 
       const matchesSearch =
         !q ||
-        [p.name, p.description, p.category, p.tag, p.merchant]
+        [p.name, p.description, p.category, p.tag, p.merchant, p.source]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(q));
 
@@ -138,21 +153,11 @@ export default function DealsPage() {
           </a>
 
           <nav style={styles.nav}>
-            <a href="#top-deals" style={styles.navLink}>
-              Top Deals
-            </a>
-            <a href="#preisfehler" style={styles.navLink}>
-              Preisfehler
-            </a>
-            <a href="#alle-deals" style={styles.navLink}>
-              Alle Angebote
-            </a>
-            <a href="/impressum" style={styles.navLink}>
-              Impressum
-            </a>
-            <a href="/datenschutz" style={styles.navLink}>
-              Datenschutz
-            </a>
+            <a href="#top-deals" style={styles.navLink}>Top Deals</a>
+            <a href="#preisfehler" style={styles.navLink}>Preisfehler</a>
+            <a href="#alle-deals" style={styles.navLink}>Alle Angebote</a>
+            <a href="/impressum" style={styles.navLink}>Impressum</a>
+            <a href="/datenschutz" style={styles.navLink}>Datenschutz</a>
           </nav>
         </header>
 
@@ -173,12 +178,8 @@ export default function DealsPage() {
               </p>
 
               <div style={styles.actions}>
-                <a href="#top-deals" style={styles.primaryBtn}>
-                  Top Deals ansehen
-                </a>
-                <a href="#alle-deals" style={styles.secondaryBtn}>
-                  Alle Angebote
-                </a>
+                <a href="#top-deals" style={styles.primaryBtn}>Top Deals ansehen</a>
+                <a href="#alle-deals" style={styles.secondaryBtn}>Alle Angebote</a>
               </div>
 
               <p style={styles.affiliateNote}>
@@ -194,7 +195,7 @@ export default function DealsPage() {
                 <li>✔ Fokus auf echte Technik-Angebote</li>
                 <li>✔ Täglich aktualisierte Deal-Auswahl</li>
                 <li>✔ Preisfehler und Top Deals separat sichtbar</li>
-                <li>✔ Klare Kategorien statt unübersichtlicher Produktflut</li>
+                <li>✔ Klare Kategorien statt Produktflut</li>
                 <li>✔ Transparente Affiliate-Hinweise</li>
               </ul>
             </div>
@@ -207,8 +208,8 @@ export default function DealsPage() {
             </div>
 
             <div style={styles.infoCard}>
-              <strong>Deal Ranking</strong>
-              <span>Angebote werden nach Klicks, Frische und Deal-Signal sortiert.</span>
+              <strong>Qualitätsfilter</strong>
+              <span>Unvollständige Angebote ohne Preis oder Link werden ausgeblendet.</span>
             </div>
 
             <div style={styles.infoCard}>
@@ -248,9 +249,7 @@ export default function DealsPage() {
                   type="button"
                   onClick={() => {
                     setCategory(item.value);
-                    document
-                      .getElementById("alle-deals")
-                      ?.scrollIntoView({ behavior: "smooth" });
+                    document.getElementById("alle-deals")?.scrollIntoView({ behavior: "smooth" });
                   }}
                   style={category === item.value ? styles.pillActive : styles.pill}
                 >
@@ -270,9 +269,7 @@ export default function DealsPage() {
             </div>
 
             {topDeals.length === 0 ? (
-              <div style={styles.emptyBox}>
-                Noch keine Deals vorhanden. Füge Produkte im Admin hinzu.
-              </div>
+              <div style={styles.emptyBox}>Noch keine Deals vorhanden.</div>
             ) : (
               <div style={styles.grid}>
                 {topDeals.map((p) => (
@@ -292,9 +289,7 @@ export default function DealsPage() {
             </div>
 
             {priceErrors.length === 0 ? (
-              <div style={styles.emptyBox}>
-                Aktuell sind keine Preisfehler markiert.
-              </div>
+              <div style={styles.emptyBox}>Aktuell sind keine Preisfehler markiert.</div>
             ) : (
               <div style={styles.grid}>
                 {priceErrors.map((p) => (
@@ -349,9 +344,7 @@ export default function DealsPage() {
             </div>
 
             {filtered.length === 0 ? (
-              <div style={styles.emptyBox}>
-                Keine passenden Angebote gefunden.
-              </div>
+              <div style={styles.emptyBox}>Keine passenden Angebote gefunden.</div>
             ) : (
               <div style={styles.grid}>
                 {filtered.map((p) => (
@@ -364,29 +357,24 @@ export default function DealsPage() {
           <section style={styles.contentBox}>
             <h2 style={styles.contentTitle}>Affiliate-Transparenz</h2>
             <p>
-              Diese Website kann Affiliate-Links enthalten. Wenn ein Kauf über
-              einen solchen Link erfolgt, kann Orbital-Noir Deals eine Provision
-              erhalten. Für Nutzer entstehen dadurch keine zusätzlichen Kosten.
+              Diese Website ist ein unabhängiger Deal-Aggregator für Technik-Produkte.
+              Einige Links können Affiliate-Links sein. Wenn ein Kauf über einen
+              solchen Link erfolgt, kann Orbital-Noir Deals eine Provision erhalten.
+              Für Nutzer entstehen dadurch keine zusätzlichen Kosten.
             </p>
             <p>
               Die Sortierung der Angebote basiert auf internen Faktoren wie
-              Aktualität, Klicks, Kategorie, Preisbereich und manuellen Markierungen
-              wie „featured“ oder „preisfehler“.
+              Aktualität, Klicks, Kategorie, Preisbereich, Vollständigkeit der
+              Produktdaten und manuellen Markierungen wie „featured“ oder „preisfehler“.
             </p>
           </section>
 
           <footer style={styles.footer}>
-            <a href="/impressum" style={styles.footerLink}>
-              Impressum
-            </a>
+            <a href="/impressum" style={styles.footerLink}>Impressum</a>
             <span>•</span>
-            <a href="/datenschutz" style={styles.footerLink}>
-              Datenschutz
-            </a>
+            <a href="/datenschutz" style={styles.footerLink}>Datenschutz</a>
             <span>•</span>
-            <a href="/" style={styles.footerLink}>
-              Hauptseite
-            </a>
+            <a href="/" style={styles.footerLink}>Hauptseite</a>
           </footer>
         </main>
       </div>
