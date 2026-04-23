@@ -364,9 +364,34 @@ export default function Home() {
         </section>
       </main>
     </div>
-<a href="/impressum" style={styles.topLinkSecondary}>
-  Impressum
-</a>
+<section style={styles.shopGrid}>
+          {sortedProducts.length === 0 ? (
+            <div style={styles.emptyState}>
+              <div style={styles.microLabel}>Keine Treffer</div>
+              <h3 style={styles.emptyTitle}>Keine Produkte gefunden</h3>
+              <p style={styles.emptyText}>
+                Versuche eine andere Suche oder wähle eine andere Kategorie.
+              </p>
+            </div>
+          ) : (
+            sortedProducts.map((p) => (
+              <ProductCard key={p.id} p={p} trackClick={trackClick} />
+            ))
+          )}
+        </section>
+
+        <footer style={styles.footer}>
+          <a href="/impressum" style={styles.footerLink}>
+            Impressum
+          </a>
+          <span style={styles.footerDot}>•</span>
+          <a href="/datenschutz" style={styles.footerLink}>
+            Datenschutz
+          </a>
+        </footer>
+      </main>
+    </div>
+  );
   );
 }
 
@@ -759,3 +784,4 @@ const styles = {
     lineHeight: 1.6
   }
 };
+        
