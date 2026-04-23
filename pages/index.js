@@ -74,7 +74,8 @@ export default function Home() {
   const [gradientA, setGradientA] = useState(SUNSET_GRADIENTS[0]);
   const [gradientB, setGradientB] = useState(SUNSET_GRADIENTS[1]);
   const [showLayerA, setShowLayerA] = useState(true);
-
+  const { trackClick } = useTracking();
+  
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
   const userEmail = (session?.user?.email || "").toLowerCase();
   const isAdmin = !!userEmail && userEmail === adminEmail;
@@ -147,12 +148,14 @@ export default function Home() {
     }
   }
 
-  async function trackClick(product) {
-    await supabase
-      .from("products")
-      .update({ clicks: Number(product.clicks || 0) + 1 })
-      .eq("id", product.id);
-  }
+  async function handleClick(product) {
+  trackClick(product);
+
+  await supabase
+    .from("products")
+    .update({ clicks: Number(product.clicks || 0) + 1 })
+    .eq("id", product.id);
+}
 
   async function logout() {
     await supabase.auth.signOut();
