@@ -1,241 +1,264 @@
+import Image from "next/image";
+
+function formatPrice(value) {
+  const n = Number(value || 0);
+  return `${n.toFixed(2)} €`;
+}
+
 export default function ProductCard({ p, trackClick }) {
-  const clicks = Number(p.clicks || 0);
-  const numericPrice = Number(p.price || 0);
-  const fakeOldPrice =
-    numericPrice > 0 ? (numericPrice * 1.18).toFixed(2) : null;
-  const isHot = clicks > 20;
-  const badge = isHot ? "🔥 Bestseller" : "⚡ Top Deal";
-  const stockText = clicks > 30 ? "Heute stark gefragt" : "Beliebtes Produkt";
-  const urgencyText =
-    clicks > 25 ? "Nur noch wenige verfügbar" : "Schneller Versand";
+  const product = p || {};
+  const price = Number(product.price || 0);
+  const oldPrice = Number(product.old_price || 0);
+  const clicks = Number(product.clicks || 0);
+  const tag = String(product.tag || "").toLowerCase();
+  const merchant = product.merchant || product.source || "";
+  const buyLink = product.buy_link || product.link || "#";
+  const isTopDeal = Number(product.deal_score || 0) > 300 || tag === "featured";
+  const isPriceError = tag === "preisfehler" || String(product.category || "").toLowerCase() === "price-error";
+  const hasOldPrice = oldPrice > price && price > 0;
+
+  async function handleClick() {
+    if (trackClick) {
+      await trackClick(product);
+    }
+  }
 
   return (
     <article style={styles.card}>
-      <a style={styles.imageWrap} href={`/product/${p.id}`}>
-        <img
-          src={p.image || "https://via.placeholder.com/1200x900?text=Orbital-Noir"}
-          alt={p.name}
-          style={styles.image}
-        />
+      <div style={styles.imageWrap}>
+        {isTopDeal ? <div style={styles.ribbon}>🔥 Top Deal</div> : null}
 
-        <div style={styles.imageBadges}>
-          <span style={styles.badgePrimary}>{badge}</span>
-          <span style={styles.badgeDiscount}>-18%</span>
-        </div>
-      </a>
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name || "Produkt"}
+            fill
+            style={{ objectFit: "contain" }}
+            sizes="(max-width: 768px) 100vw, 260px"
+          />
+        ) : (
+          <div style={styles.noImage}>Kein Bild</div>
+        )}
+      </div>
 
       <div style={styles.body}>
-        <div style={styles.metaRow}>
-          <span style={styles.metaClicks}>{clicks} Klicks</span>
-          <span style={styles.metaTrust}>{stockText}</span>
+        <div style={styles.badges}>
+          <span style={styles.badgeGreen}>Top Deal</span>
+
+          {isPriceError ? <span style={styles.badgeRed}>Preisfehler</span> : null}
+
+          {clicks > 20 ? <span style={styles.badgeDark}>🔥 Trending</span> : null}
+
+          {merchant ? <span style={styles.badgeDark}>{merchant}</span> : null}
         </div>
 
-        <h3 style={styles.title}>
-          <a href={`/product/${p.id}`} style={styles.titleLink}>
-            {p.name}
+        <h3 style={styles.title}>{product.name || "Unbenanntes Produkt"}</h3>
+
+        {product.description ? (
+          <p style={styles.description}>{product.description}</p>
+        ) : (
+          <p style={styles.description}>Aktuelles Technik-Angebot mit direktem Deal-Link.</p>
+        )}
+
+        <div style={styles.meta}>
+          <span>{product.category || "Tech"}</span>
+          <span>{clicks} Klicks</span>
+        </div>
+
+        <div style={styles.priceBox}>
+          {hasOldPrice ? <div style={styles.oldPrice}>{formatPrice(oldPrice)}</div> : null}
+
+          <div style={styles.price}>{formatPrice(price)}</div>
+
+          {hasOldPrice ? (
+            <div style={styles.save}>Spare {formatPrice(oldPrice - price)}</div>
+          ) : null}
+        </div>
+
+        {buyLink && buyLink !== "#" ? (
+          <a
+            href={buyLink}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            onClick={handleClick}
+            style={styles.buyBtn}
+          >
+            🔥 Deal ansehen
           </a>
-        </h3>
+        ) : (
+          <span style={styles.disabledBtn}>Kein Link vorhanden</span>
+        )}
 
-        <p style={styles.description}>
-          {p.description || "Beliebtes Tech-Produkt mit starkem Preis-Leistungs-Verhältnis."}
-        </p>
-
-        <div style={styles.trustBox}>
-          <div style={styles.trustLine}>✔ {urgencyText}</div>
-          <div style={styles.trustLine}>✔ Direkt zum Angebot</div>
-        </div>
-
-        <div style={styles.footer}>
-          <div>
-            {fakeOldPrice ? <div style={styles.oldPrice}>{fakeOldPrice} €</div> : null}
-            <div style={styles.price}>{p.price} €</div>
-          </div>
-
-          {p.buy_link ? (
-            <a
-              style={styles.buyBtn}
-              href={p.buy_link}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => trackClick(p)}
-            >
-              🔥 Zum Deal
-            </a>
-          ) : (
-            <span style={styles.buyBtnDisabled}>Kein Link</span>
-          )}
-        </div>
+        <div style={styles.note}>Affiliate-Link möglich · Preis kann sich ändern</div>
       </div>
     </article>
   );
 }
 
+const pillBase = {
+  padding: "3px 9px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: 800,
+  lineHeight: 1.4
+};
+
 const styles = {
   card: {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
     background: "rgba(255,255,255,0.94)",
-    border: "1px solid rgba(255,255,255,0.55)",
-    boxShadow: "0 18px 50px rgba(0,0,0,0.08)",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
+    border: "1px solid rgba(17,24,39,0.08)",
     borderRadius: "20px",
     overflow: "hidden",
-    display: "flex",
-    flexDirection: "column"
+    boxShadow: "0 14px 44px rgba(0,0,0,0.08)",
+    minHeight: "100%"
   },
 
   imageWrap: {
-    display: "block",
     position: "relative",
-    aspectRatio: "4 / 3",
-    background: "#f3f4f6",
-    textDecoration: "none"
+    height: "230px",
+    background: "#ffffff",
+    borderBottom: "1px solid #f3f4f6"
   },
 
-  image: {
-    display: "block",
-    width: "100%",
-    height: "100%",
-    objectFit: "cover"
-  },
-
-  imageBadges: {
+  ribbon: {
     position: "absolute",
-    top: 12,
-    left: 12,
-    right: 12,
+    top: "12px",
+    left: "12px",
+    zIndex: 2,
+    background: "#ff9900",
+    color: "#ffffff",
+    padding: "5px 10px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: 900,
+    boxShadow: "0 8px 20px rgba(0,0,0,0.15)"
+  },
+
+  noImage: {
+    height: "100%",
     display: "flex",
-    justifyContent: "space-between",
-    gap: 8,
-    flexWrap: "wrap"
-  },
-
-  badgePrimary: {
-    display: "inline-flex",
     alignItems: "center",
-    minHeight: 28,
-    padding: "0 10px",
-    borderRadius: 999,
-    background: "#111827",
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: 700
-  },
-
-  badgeDiscount: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 28,
-    padding: "0 10px",
-    borderRadius: 999,
-    background: "#dc2626",
-    color: "#ffffff",
-    fontSize: 12,
+    justifyContent: "center",
+    color: "#9ca3af",
     fontWeight: 700
   },
 
   body: {
-    padding: 18
-  },
-
-  metaRow: {
+    padding: "16px",
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-    marginBottom: 12
+    flexDirection: "column",
+    gap: "10px",
+    flex: 1
   },
 
-  metaClicks: {
-    color: "#6b7280",
-    fontSize: 13
+  badges: {
+    display: "flex",
+    gap: "6px",
+    flexWrap: "wrap"
   },
 
-  metaTrust: {
-    color: "#111827",
-    fontSize: 12,
-    fontWeight: 600
+  badgeGreen: {
+    ...pillBase,
+    background: "#e6f4ea",
+    color: "#0f5132"
+  },
+
+  badgeRed: {
+    ...pillBase,
+    background: "#fdecea",
+    color: "#842029"
+  },
+
+  badgeDark: {
+    ...pillBase,
+    background: "#111827",
+    color: "#ffffff"
   },
 
   title: {
     margin: 0,
-    fontSize: 20,
-    lineHeight: 1.2,
-    letterSpacing: "-0.03em"
-  },
-
-  titleLink: {
     color: "#111827",
-    textDecoration: "none"
+    fontSize: "16px",
+    lineHeight: 1.35,
+    fontWeight: 800
   },
 
   description: {
-    marginTop: 10,
-    marginBottom: 14,
+    margin: 0,
     color: "#4b5563",
-    fontSize: 15,
-    lineHeight: 1.6
+    fontSize: "14px",
+    lineHeight: 1.5,
+    minHeight: "42px"
   },
 
-  trustBox: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 14,
-    background: "#f9fafb",
-    border: "1px solid rgba(17,24,39,0.06)"
-  },
-
-  trustLine: {
-    color: "#374151",
-    fontSize: 13,
-    lineHeight: 1.6
-  },
-
-  footer: {
+  meta: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "end",
-    gap: 12,
-    flexWrap: "wrap"
+    gap: "12px",
+    flexWrap: "wrap",
+    color: "#6b7280",
+    fontSize: "13px",
+    fontWeight: 600
+  },
+
+  priceBox: {
+    marginTop: "auto"
   },
 
   oldPrice: {
-    color: "#9ca3af",
-    fontSize: 13,
+    color: "#6b7280",
     textDecoration: "line-through",
-    marginBottom: 4
+    fontSize: "14px",
+    marginBottom: "2px"
   },
 
   price: {
     color: "#111827",
-    fontWeight: 700,
-    fontSize: 24,
-    letterSpacing: "-0.03em"
+    fontSize: "26px",
+    fontWeight: 900,
+    letterSpacing: "-0.04em"
+  },
+
+  save: {
+    color: "#15803d",
+    fontWeight: 800,
+    fontSize: "14px",
+    marginTop: "2px"
   },
 
   buyBtn: {
+    marginTop: "8px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 44,
-    padding: "0 16px",
-    borderRadius: 12,
-    background: "#111827",
-    color: "#ffffff",
+    minHeight: "44px",
+    borderRadius: "12px",
+    background: "#ffd814",
+    color: "#111827",
     textDecoration: "none",
-    fontWeight: 700,
-    whiteSpace: "nowrap"
+    fontWeight: 900,
+    border: "1px solid #facc15",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.08)"
   },
 
-  buyBtnDisabled: {
+  disabledBtn: {
+    marginTop: "8px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 44,
-    padding: "0 16px",
-    borderRadius: 12,
+    minHeight: "44px",
+    borderRadius: "12px",
     background: "#e5e7eb",
     color: "#6b7280",
-    fontWeight: 600
+    fontWeight: 800
+  },
+
+  note: {
+    color: "#9ca3af",
+    fontSize: "12px",
+    lineHeight: 1.4
   }
 };
