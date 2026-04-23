@@ -4,16 +4,23 @@ import ProductCard from "../components/ProductCard";
 import TopDealsSection from "../components/TopDealsSection";
 
 const SUNSET_GRADIENTS = [
-  "linear-gradient(180deg, #fff3b0 0%, #ffd166 100%)",
-  "linear-gradient(180deg, #ffe08a 0%, #ffbf69 100%)",
-  "linear-gradient(180deg, #ffd166 0%, #ff9f1c 100%)",
-  "linear-gradient(180deg, #ffbf69 0%, #f77f00 100%)",
-  "linear-gradient(180deg, #ff9f1c 0%, #e76f51 100%)",
-  "linear-gradient(180deg, #f77f00 0%, #b56576 100%)",
-  "linear-gradient(180deg, #e76f51 0%, #6d597a 100%)",
-  "linear-gradient(180deg, #b56576 0%, #355070 100%)",
-  "linear-gradient(180deg, #6d597a 0%, #1d3557 100%)"
+  "linear-gradient(180deg, #fff7c2 0%, #ffe08a 100%)",
+  "linear-gradient(180deg, #ffe9a8 0%, #ffd166 100%)",
+  "linear-gradient(180deg, #ffd97a 0%, #ffbf69 100%)",
+  "linear-gradient(180deg, #ffc46b 0%, #ff9f1c 100%)",
+  "linear-gradient(180deg, #ffad5a 0%, #f77f00 100%)",
+  "linear-gradient(180deg, #f77f00 0%, #e76f51 100%)",
+  "linear-gradient(180deg, #e76f51 0%, #b56576 100%)",
+  "linear-gradient(180deg, #b56576 0%, #6d597a 100%)",
+  "linear-gradient(180deg, #6d597a 0%, #355070 100%)",
+  "linear-gradient(180deg, #355070 0%, #1d3557 100%)",
+  "linear-gradient(180deg, #6d597a 0%, #5e548e 100%)",
+  "linear-gradient(180deg, #b56576 0%, #ffb4a2 100%)",
+  "linear-gradient(180deg, #ffd166 0%, #fff7c2 100%)"
 ];
+
+const STEP_DURATION_MS = 5 * 60 * 1000; // 5 Minuten pro Übergang
+// 12 Übergänge * 5 Minuten = 60 Minuten kompletter Durchgang
 
 const CATEGORY_OPTIONS = [
   { value: "all", label: "Alle" },
@@ -50,6 +57,7 @@ function getProductScore(product) {
 
   const created = new Date(product.created_at || Date.now());
   const ageHours = (Date.now() - created.getTime()) / 1000 / 60 / 60;
+
   if (ageHours < 24) score += 120;
   if (ageHours < 72) score += 60;
 
@@ -65,8 +73,6 @@ export default function Home() {
   const [gradientA, setGradientA] = useState(SUNSET_GRADIENTS[0]);
   const [gradientB, setGradientB] = useState(SUNSET_GRADIENTS[1]);
   const [showLayerA, setShowLayerA] = useState(true);
-  const [activeGradientIndex, setActiveGradientIndex] = useState(0);
-  const [autoMode, setAutoMode] = useState(true);
 
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase();
   const userEmail = (session?.user?.email || "").toLowerCase();
@@ -82,7 +88,6 @@ export default function Home() {
       savedIndex < SUNSET_GRADIENTS.length
     ) {
       const nextIndex = (savedIndex + 1) % SUNSET_GRADIENTS.length;
-      setActiveGradientIndex(savedIndex);
       setGradientA(SUNSET_GRADIENTS[savedIndex]);
       setGradientB(SUNSET_GRADIENTS[nextIndex]);
       setShowLayerA(true);
@@ -92,8 +97,8 @@ export default function Home() {
       setSession(data.session ?? null);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s ?? null);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null);
     });
 
     return () => {
@@ -104,30 +109,31 @@ export default function Home() {
   useEffect(() => {
     document.body.style.background = "#1d3557";
     document.body.style.backgroundAttachment = "fixed";
+    document.body.style.margin = "0";
   }, []);
 
   useEffect(() => {
-    if (!autoMode) return;
-
     const interval = setInterval(() => {
-      setActiveGradientIndex((prev) => {
-        const nextIndex = (prev + 1) % SUNSET_GRADIENTS.length;
+      setShowLayerA((prevShowLayerA) => {
+        const currentIndex = Number(
+          localStorage.getItem("orbital-noir-sunset-index") || 0
+        );
+        const nextIndex = (currentIndex + 1) % SUNSET_GRADIENTS.length;
         const afterNextIndex = (nextIndex + 1) % SUNSET_GRADIENTS.length;
 
-        if (showLayerA) {
+        if (prevShowLayerA) {
           setGradientB(SUNSET_GRADIENTS[afterNextIndex]);
         } else {
           setGradientA(SUNSET_GRADIENTS[afterNextIndex]);
         }
 
-        setShowLayerA((current) => !current);
         localStorage.setItem("orbital-noir-sunset-index", String(nextIndex));
-        return nextIndex;
+        return !prevShowLayerA;
       });
-    }, 12000);
+    }, STEP_DURATION_MS);
 
     return () => clearInterval(interval);
-  }, [autoMode, showLayerA]);
+  }, []);
 
   async function loadProducts() {
     const { data, error } = await supabase
@@ -184,9 +190,6 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
-      <div className="sunset-bg" />
-      <div className="vignette" />
-
       <div
         style={{
           ...styles.gradientLayer,
@@ -202,6 +205,7 @@ export default function Home() {
         }}
       />
 
+      <div style={styles.vignette} />
       <div style={styles.gridNoise} />
 
       <header style={styles.topbarWrap}>
@@ -241,39 +245,6 @@ export default function Home() {
               </>
             )}
           </div>
-        </div>
-
-        <div style={styles.paletteRow}>
-          {SUNSET_GRADIENTS.map((gradient, index) => (
-            <button
-              key={index}
-              type="button"
-              title={`Sunset ${index + 1}`}
-              onClick={() => {
-                const nextIndex = (index + 1) % SUNSET_GRADIENTS.length;
-
-                setAutoMode(false);
-                setActiveGradientIndex(index);
-                setGradientA(SUNSET_GRADIENTS[index]);
-                setGradientB(SUNSET_GRADIENTS[nextIndex]);
-                setShowLayerA(true);
-
-                localStorage.setItem("orbital-noir-sunset-index", String(index));
-              }}
-              style={{
-                ...styles.paletteButton,
-                background: gradient,
-                border:
-                  activeGradientIndex === index
-                    ? "2px solid #111827"
-                    : "1px solid rgba(17,24,39,0.14)",
-                boxShadow:
-                  activeGradientIndex === index
-                    ? "0 0 0 3px rgba(17,24,39,0.08)"
-                    : "none"
-              }}
-            />
-          ))}
         </div>
       </header>
 
@@ -326,10 +297,13 @@ export default function Home() {
         <section style={styles.hero}>
           <div style={styles.heroPanel}>
             <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
-            <h1 style={styles.heroTitle}>Tech Deals im warmen Sunset-Look.</h1>
+            <h1 style={styles.heroTitle}>
+              Tech Deals im ruhigen Sunset-Verlauf.
+            </h1>
             <p style={styles.heroText}>
-              Der Hintergrund blendet langsam und weich von hellem Gelb über Gold und
-              Orange bis in den Abend hinein.
+              Der Hintergrund läuft jetzt automatisch ganz langsam von hell über
+              goldene und warme Abendfarben bis ins Dunkle — und wieder zurück.
+              Ein kompletter Durchgang dauert 60 Minuten.
             </p>
 
             {!session ? (
@@ -344,7 +318,7 @@ export default function Home() {
           <div style={styles.heroPanel}>
             <div style={styles.frameTop}>
               <span style={styles.statusDot} />
-              <span>Sunset Fade aktiv</span>
+              <span>60-Minuten Sunset Flow aktiv</span>
             </div>
 
             <div style={styles.visualCore}>
@@ -352,11 +326,11 @@ export default function Home() {
               <div style={styles.ringB} />
               <div style={styles.ringC} />
               <div style={styles.coreCard}>
-                <div style={styles.coreKicker}>Soft fade</div>
+                <div style={styles.coreKicker}>Very slow transition</div>
                 <div style={styles.coreTitle}>Golden Hour UI</div>
                 <div style={styles.coreText}>
-                  Zwei Hintergrund-Layer überblenden weich ineinander – ohne ruckelige
-                  Farbsprünge.
+                  Der Verlauf blendet weich und fast unmerklich weiter — wie ein
+                  echter Sonnenuntergang über längere Zeit.
                 </div>
               </div>
             </div>
@@ -410,30 +384,30 @@ const styles = {
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   },
 
+  gradientLayer: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 0,
+    transition: `opacity ${STEP_DURATION_MS}ms linear`,
+    willChange: "opacity",
+    pointerEvents: "none"
+  },
+
   vignette: {
     position: "fixed",
     inset: 0,
     pointerEvents: "none",
     zIndex: 1,
     background:
-      "radial-gradient(circle at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0.55) 100%)",
+      "radial-gradient(circle at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.45) 100%)",
     mixBlendMode: "multiply"
-  },
-
-  gradientLayer: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 0,
-    transition: "opacity 12s linear",
-    willChange: "opacity",
-    pointerEvents: "none"
   },
 
   gridNoise: {
     position: "fixed",
     inset: 0,
     pointerEvents: "none",
-    opacity: 0.04,
+    opacity: 0.03,
     zIndex: 1,
     backgroundImage:
       "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
@@ -502,22 +476,6 @@ const styles = {
     fontWeight: 500,
     cursor: "pointer",
     lineHeight: 1.2
-  },
-
-  paletteRow: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "12px",
-    marginTop: "16px",
-    flexWrap: "wrap"
-  },
-
-  paletteButton: {
-    width: "38px",
-    height: "38px",
-    borderRadius: "999px",
-    cursor: "pointer"
   },
 
   shell: {
