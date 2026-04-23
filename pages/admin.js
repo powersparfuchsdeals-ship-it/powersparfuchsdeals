@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import AdminImport from "../components/AdminImport";
 
 const SUNSET_GRADIENTS = [
   "linear-gradient(180deg, #fff7c2 0%, #ffe08a 100%)",
@@ -20,6 +21,16 @@ const SUNSET_GRADIENTS = [
 const STEP_DURATION_MS = 5 * 60 * 1000;
 const COMMISSION_RATE = 0.03;
 
+const EMPTY_PRODUCT = {
+  name: "",
+  price: "",
+  category: "",
+  image: "",
+  buy_link: "",
+  description: "",
+  tag: ""
+};
+
 function formatPrice(value) {
   const n = Number(value || 0);
   return `${n.toFixed(2)} €`;
@@ -38,8 +49,16 @@ export default function AdminPage() {
   const [session, setSession] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
+
   const [products, setProducts] = useState([]);
   const [trackingEvents, setTrackingEvents] = useState([]);
+
+  const [importMessage, setImportMessage] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+
+  const [newProduct, setNewProduct] = useState(EMPTY_PRODUCT);
+  const [createMsg, setCreateMsg] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
 
   const [gradientA, setGradientA] = useState(SUNSET_GRADIENTS[0]);
   const [gradientB, setGradientB] = useState(SUNSET_GRADIENTS[1]);
@@ -179,6 +198,68 @@ export default function AdminPage() {
     window.location.href = "/";
   }
 
+  async function runImport(url) {
+    setImportLoading(true);
+    setImportMessage("Import läuft...");
+
+    try {
+      const res = await fetch(url, { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok || data?.ok === false) {
+        setImportMessage(`❌ Fehler: ${data?.error || "Import fehlgeschlagen"}`);
+        return;
+      }
+
+      setImportMessage(
+        `✅ Fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${
+          data.skipped || 0
+        } übersprungen.`
+      );
+
+      await Promise.all([loadProducts(), loadTracking()]);
+    } catch {
+      setImportMessage("❌ Import fehlgeschlagen.");
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  async function createProduct() {
+    if (!newProduct.name.trim() || !newProduct.price) {
+      setCreateMsg("❌ Name & Preis erforderlich.");
+      return;
+    }
+
+    setCreateLoading(true);
+    setCreateMsg("Produkt wird erstellt...");
+
+    const payload = {
+      name: newProduct.name.trim(),
+      price: Number(newProduct.price || 0),
+      category: newProduct.category.trim() || "other",
+      image: newProduct.image.trim(),
+      buy_link: newProduct.buy_link.trim(),
+      description: newProduct.description.trim(),
+      tag: newProduct.tag.trim(),
+      clicks: 0,
+      source: "manual",
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from("products").insert([payload]);
+
+    if (error) {
+      setCreateMsg(`❌ Fehler: ${error.message}`);
+    } else {
+      setCreateMsg("✅ Produkt erstellt.");
+      setNewProduct(EMPTY_PRODUCT);
+      await loadProducts();
+    }
+
+    setCreateLoading(false);
+  }
+
   const trackingClickMap = useMemo(() => {
     const map = new Map();
 
@@ -285,10 +366,7 @@ export default function AdminPage() {
         String(p.category || "").toLowerCase() === "price-error"
     ).length;
 
-    const estimatedRevenue = products.reduce(
-      (sum, product) => sum + getRevenue(product),
-      0
-    );
+    const estimatedRevenue = products.reduce((sum, product) => sum + getRevenue(product), 0);
 
     return {
       totalProducts,
@@ -303,8 +381,20 @@ export default function AdminPage() {
   if (!isReady) {
     return (
       <div style={styles.page}>
-        <div style={{ ...styles.gradientLayer, background: gradientA, opacity: showLayerA ? 1 : 0 }} />
-        <div style={{ ...styles.gradientLayer, background: gradientB, opacity: showLayerA ? 0 : 1 }} />
+        <div
+          style={{
+            ...styles.gradientLayer,
+            background: gradientA,
+            opacity: showLayerA ? 1 : 0
+          }}
+        />
+        <div
+          style={{
+            ...styles.gradientLayer,
+            background: gradientB,
+            opacity: showLayerA ? 0 : 1
+          }}
+        />
         <div style={styles.vignette} />
         <div style={styles.gridNoise} />
         <div style={styles.loadingWrap}>
@@ -318,20 +408,40 @@ export default function AdminPage() {
 
   return (
     <div style={styles.page}>
-      <div style={{ ...styles.gradientLayer, background: gradientA, opacity: showLayerA ? 1 : 0 }} />
-      <div style={{ ...styles.gradientLayer, background: gradientB, opacity: showLayerA ? 0 : 1 }} />
+      <div
+        style={{
+          ...styles.gradientLayer,
+          background: gradientA,
+          opacity: showLayerA ? 1 : 0
+        }}
+      />
+      <div
+        style={{
+          ...styles.gradientLayer,
+          background: gradientB,
+          opacity: showLayerA ? 0 : 1
+        }}
+      />
 
       <div style={styles.vignette} />
       <div style={styles.gridNoise} />
 
       <header style={styles.topbarWrap}>
         <div style={styles.topbar}>
-          <a href="/" style={styles.brand}>Orbital-Noir</a>
+          <a href="/" style={styles.brand}>
+            Orbital-Noir
+          </a>
 
           <div style={styles.navLinks}>
-            <a href="/" style={styles.topLink}>Shop</a>
-            <a href="/preisfehler" style={styles.topLink}>Preisfehler</a>
-            <button type="button" onClick={logout} style={styles.topButton}>Logout</button>
+            <a href="/" style={styles.topLink}>
+              Shop
+            </a>
+            <a href="/preisfehler" style={styles.topLink}>
+              Preisfehler
+            </a>
+            <button type="button" onClick={logout} style={styles.topButton}>
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -342,13 +452,17 @@ export default function AdminPage() {
             <div style={styles.microLabel}>Orbital-Noir / Admin</div>
             <h1 style={styles.heroTitle}>Dashboard im Sunset-Modus.</h1>
             <p style={styles.heroText}>
-              Hier siehst du echte Performance-Daten aus Produkten und Tracking-Events:
-              Top Performer, Einnahmen-Schätzung, schwache Produkte und aktuelle Trends.
+              Hier siehst du Produkte, Tracking, Einnahmen-Schätzung, Cron-Imports und
+              kannst Angebote manuell erstellen.
             </p>
 
             <div style={styles.heroActions}>
-              <a href="/" style={styles.ghostBtn}>Zum Shop</a>
-              <a href="/preisfehler" style={styles.ghostBtn}>Preisfehler</a>
+              <a href="/" style={styles.ghostBtn}>
+                Zum Shop
+              </a>
+              <a href="/preisfehler" style={styles.ghostBtn}>
+                Preisfehler
+              </a>
             </div>
           </div>
 
@@ -366,7 +480,7 @@ export default function AdminPage() {
                 <div style={styles.coreKicker}>Control Center</div>
                 <div style={styles.coreTitle}>Products + Tracking</div>
                 <div style={styles.coreText}>
-                  Ranking, Klicks und geschätzte Affiliate-Einnahmen in einem Dashboard.
+                  Ranking, Klicks, Imports und manuelle Angebote in einem Dashboard.
                 </div>
               </div>
             </div>
@@ -403,6 +517,135 @@ export default function AdminPage() {
             <div style={styles.statLabel}>geschätzte Einnahmen</div>
             <div style={styles.statValue}>{formatPrice(stats.estimatedRevenue)}</div>
           </div>
+        </section>
+
+        <section style={styles.sectionBlock}>
+          <div style={styles.sectionHead}>
+            <div>
+              <div style={styles.microLabel}>Imports</div>
+              <h2 style={styles.sectionTitle}>Cron & Import Aktionen</h2>
+            </div>
+            <p style={styles.sectionText}>Manuelle Imports direkt aus dem Admin starten.</p>
+          </div>
+
+          <div style={styles.quickGrid}>
+            <button
+              type="button"
+              onClick={() => runImport("/api/cron/import-amazon")}
+              disabled={importLoading}
+              style={styles.actionBtn}
+            >
+              Amazon Import starten
+            </button>
+
+            <button
+              type="button"
+              onClick={() => runImport("/api/admin/import-preisfehler")}
+              disabled={importLoading}
+              style={styles.actionBtn}
+            >
+              Preisfehler Import starten
+            </button>
+
+            <button
+              type="button"
+              onClick={() => runImport("/api/admin/import-featured")}
+              disabled={importLoading}
+              style={styles.actionBtn}
+            >
+              Featured Import starten
+            </button>
+
+            <button
+              type="button"
+              onClick={() => runImport("/api/admin/import-otto-awin")}
+              disabled={importLoading}
+              style={styles.actionBtn}
+            >
+              OTTO / Awin Import starten
+            </button>
+          </div>
+
+          {importMessage ? <div style={styles.messageBox}>{importMessage}</div> : null}
+
+          <div style={styles.importBox}>
+            <AdminImport />
+          </div>
+        </section>
+
+        <section style={styles.sectionBlock}>
+          <div style={styles.sectionHead}>
+            <div>
+              <div style={styles.microLabel}>Manuell</div>
+              <h2 style={styles.sectionTitle}>Produkt hinzufügen</h2>
+            </div>
+            <p style={styles.sectionText}>Neues Angebot direkt erstellen.</p>
+          </div>
+
+          <div style={styles.formGrid}>
+            <input
+              placeholder="Produktname"
+              value={newProduct.name}
+              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Preis (€)"
+              type="number"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Kategorie z.B. smartphone"
+              value={newProduct.category}
+              onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Bild URL"
+              value={newProduct.image}
+              onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Affiliate / Buy Link"
+              value={newProduct.buy_link}
+              onChange={(e) => setNewProduct({ ...newProduct, buy_link: e.target.value })}
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Tag z.B. featured / preisfehler"
+              value={newProduct.tag}
+              onChange={(e) => setNewProduct({ ...newProduct, tag: e.target.value })}
+              style={styles.input}
+            />
+
+            <textarea
+              placeholder="Beschreibung"
+              value={newProduct.description}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, description: e.target.value })
+              }
+              style={styles.textarea}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={createProduct}
+            disabled={createLoading}
+            style={styles.actionBtn}
+          >
+            {createLoading ? "Wird erstellt..." : "➕ Produkt erstellen"}
+          </button>
+
+          {createMsg ? <div style={styles.messageBox}>{createMsg}</div> : null}
         </section>
 
         <section style={styles.sectionBlock}>
@@ -808,6 +1051,58 @@ const styles = {
     margin: 0,
     color: "#4b5563",
     fontSize: "15px"
+  },
+  quickGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "14px"
+  },
+  actionBtn: {
+    minHeight: "46px",
+    borderRadius: "12px",
+    border: "1px solid rgba(17,24,39,0.12)",
+    background: "#111827",
+    color: "#ffffff",
+    fontWeight: 700,
+    cursor: "pointer",
+    padding: "0 14px"
+  },
+  messageBox: {
+    marginTop: "16px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    background: "#f3f4f6",
+    border: "1px solid #e5e7eb",
+    color: "#111827"
+  },
+  importBox: {
+    marginTop: "22px",
+    paddingTop: "18px",
+    borderTop: "1px solid #e5e7eb"
+  },
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "12px",
+    marginBottom: "16px"
+  },
+  input: {
+    minHeight: "44px",
+    borderRadius: "10px",
+    border: "1px solid #d1d5db",
+    padding: "0 12px",
+    color: "#111827",
+    background: "#ffffff"
+  },
+  textarea: {
+    gridColumn: "1 / -1",
+    minHeight: "88px",
+    borderRadius: "10px",
+    border: "1px solid #d1d5db",
+    padding: "10px 12px",
+    color: "#111827",
+    background: "#ffffff",
+    resize: "vertical"
   },
   tableWrap: {
     overflowX: "auto"
