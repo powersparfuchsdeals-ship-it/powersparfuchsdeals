@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import AdminImport from "../components/AdminImport";
 
 export default function AdminImport() {
   const [loading, setLoading] = useState(false);
