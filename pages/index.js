@@ -1,5 +1,3 @@
-<div className="sunset-bg" />
-<div style={styles.vignette} />  
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
@@ -186,6 +184,9 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
+      <div className="sunset-bg" />
+      <div className="vignette" />
+
       <div
         style={{
           ...styles.gradientLayer,
@@ -201,8 +202,6 @@ export default function Home() {
         }}
       />
 
-      
-      
       <div style={styles.gridNoise} />
 
       <header style={styles.topbarWrap}>
@@ -329,8 +328,8 @@ export default function Home() {
             <div style={styles.microLabel}>Orbital-Noir / Sunset Deals</div>
             <h1 style={styles.heroTitle}>Tech Deals im warmen Sunset-Look.</h1>
             <p style={styles.heroText}>
-              Der Hintergrund wechselt jetzt nicht mehr ruckartig, sondern blendet
-              langsam von hellem Gelb über Gold und Orange bis in den Abend hinein.
+              Der Hintergrund blendet langsam und weich von hellem Gelb über Gold und
+              Orange bis in den Abend hinein.
             </p>
 
             {!session ? (
@@ -356,7 +355,8 @@ export default function Home() {
                 <div style={styles.coreKicker}>Soft fade</div>
                 <div style={styles.coreTitle}>Golden Hour UI</div>
                 <div style={styles.coreText}>
-                  Zwei Hintergrund-Layer überblenden weich ineinander – ohne ruckelige Farbsprünge.
+                  Zwei Hintergrund-Layer überblenden weich ineinander – ohne ruckelige
+                  Farbsprünge.
                 </div>
               </div>
             </div>
@@ -410,6 +410,16 @@ const styles = {
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   },
 
+  vignette: {
+    position: "fixed",
+    inset: 0,
+    pointerEvents: "none",
+    zIndex: 1,
+    background:
+      "radial-gradient(circle at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0.55) 100%)",
+    mixBlendMode: "multiply"
+  },
+
   gradientLayer: {
     position: "fixed",
     inset: 0,
@@ -417,32 +427,6 @@ const styles = {
     transition: "opacity 12s linear",
     willChange: "opacity",
     pointerEvents: "none"
-  },
-
-  bgOrbA: {
-    position: "fixed",
-    top: "-140px",
-    left: "-100px",
-    width: "420px",
-    height: "420px",
-    borderRadius: "999px",
-    background: "rgba(255,255,255,0.16)",
-    filter: "blur(80px)",
-    pointerEvents: "none",
-    zIndex: 1
-  },
-
-  bgOrbB: {
-    position: "fixed",
-    bottom: "-180px",
-    right: "-100px",
-    width: "460px",
-    height: "460px",
-    borderRadius: "999px",
-    background: "rgba(255,255,255,0.12)",
-    filter: "blur(90px)",
-    pointerEvents: "none",
-    zIndex: 1
   },
 
   gridNoise: {
