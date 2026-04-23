@@ -364,6 +364,9 @@ export default function Home() {
         </section>
       </main>
     </div>
+<a href="/impressum" style={styles.topLinkSecondary}>
+  Impressum
+</a>
   );
 }
 
