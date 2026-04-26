@@ -1,13 +1,3 @@
-<Image ... />
-<img
-  src={imageUrl}
-  alt={product.name || "Produkt"}
-  style={styles.productImage}
-  onError={(e) => {
-    e.currentTarget.src = "/placeholder.png";
-  }}
-/>
-
 function formatPrice(value) {
   const n = Number(value || 0);
   return `${n.toFixed(2)} €`;
@@ -21,20 +11,22 @@ export default function ProductCard({ p, trackClick }) {
   const clicks = Number(product.clicks || 0);
   const tag = String(product.tag || "").toLowerCase();
   const merchant = product.merchant || product.source || "";
-  const buyLink = product.buy_link || product.link || "#";
+  const buyLink = product.buy_link || "#";
 
-  const imageUrl =
-  product.image &&
-  String(product.image).startsWith("http") &&
-  !String(product.image).includes("amazon")
-    ? product.image
-    : "/placeholder.png";
+  // 🔥 IMAGE FIX (robust)
+  let imageUrl = "/placeholder.png";
 
-  const isTopDeal = Number(product.deal_score || 0) > 300 || tag === "featured";
-  const isPriceError =
-    tag === "preisfehler" ||
-    String(product.category || "").toLowerCase() === "price-error";
+  if (
+    product.image &&
+    typeof product.image === "string" &&
+    product.image.startsWith("http") &&
+    !product.image.includes("amazon")
+  ) {
+    imageUrl = product.image;
+  }
 
+  const isTopDeal = tag === "featured";
+  const isPriceError = tag === "preisfehler";
   const hasOldPrice = oldPrice > price && price > 0;
 
   async function handleClick() {
@@ -44,35 +36,36 @@ export default function ProductCard({ p, trackClick }) {
   }
 
   return (
-    <article style={styles.card}>
+    <div style={styles.card}>
+      {/* IMAGE */}
       <div style={styles.imageWrap}>
-        {isTopDeal ? <div style={styles.ribbon}>🔥 Top Deal</div> : null}
+        {isTopDeal && <div style={styles.ribbon}>🔥 Top Deal</div>}
 
-        <Image
+        <img
           src={imageUrl}
           alt={product.name || "Produkt"}
-          fill
-          style={{ objectFit: "contain" }}
-          sizes="(max-width: 768px) 100vw, 260px"
+          style={styles.productImage}
           onError={(e) => {
             e.currentTarget.src = "/placeholder.png";
           }}
         />
       </div>
 
+      {/* CONTENT */}
       <div style={styles.body}>
         <div style={styles.badges}>
-          <span style={styles.badgeGreen}>Top Deal</span>
-
-          {isPriceError ? <span style={styles.badgeRed}>Preisfehler</span> : null}
-          {clicks > 20 ? <span style={styles.badgeDark}>🔥 Trending</span> : null}
-          {merchant ? <span style={styles.badgeDark}>{merchant}</span> : null}
+          {isTopDeal && <span style={styles.badgeGreen}>Top Deal</span>}
+          {isPriceError && <span style={styles.badgeRed}>Preisfehler</span>}
+          {clicks > 20 && <span style={styles.badgeDark}>🔥 Trending</span>}
+          {merchant && <span style={styles.badgeDark}>{merchant}</span>}
         </div>
 
-        <h3 style={styles.title}>{product.name || "Unbenanntes Produkt"}</h3>
+        <h3 style={styles.title}>
+          {product.name || "Unbenanntes Produkt"}
+        </h3>
 
         <p style={styles.description}>
-          {product.description || "Aktuelles Technik-Angebot mit direktem Deal-Link."}
+          {product.description || "Aktuelles Angebot"}
         </p>
 
         <div style={styles.meta}>
@@ -81,16 +74,20 @@ export default function ProductCard({ p, trackClick }) {
         </div>
 
         <div style={styles.priceBox}>
-          {hasOldPrice ? <div style={styles.oldPrice}>{formatPrice(oldPrice)}</div> : null}
+          {hasOldPrice && (
+            <div style={styles.oldPrice}>{formatPrice(oldPrice)}</div>
+          )}
 
           <div style={styles.price}>{formatPrice(price)}</div>
 
-          {hasOldPrice ? (
-            <div style={styles.save}>Spare {formatPrice(oldPrice - price)}</div>
-          ) : null}
+          {hasOldPrice && (
+            <div style={styles.save}>
+              Spare {formatPrice(oldPrice - price)}
+            </div>
+          )}
         </div>
 
-        {buyLink && buyLink !== "#" ? (
+        {buyLink !== "#" ? (
           <a
             href={buyLink}
             target="_blank"
@@ -101,170 +98,151 @@ export default function ProductCard({ p, trackClick }) {
             🔥 Deal ansehen
           </a>
         ) : (
-          <span style={styles.disabledBtn}>Kein Link vorhanden</span>
+          <div style={styles.disabledBtn}>Kein Link</div>
         )}
 
-        <div style={styles.note}>Affiliate-Link möglich · Preis kann sich ändern</div>
+        <div style={styles.note}>
+          Affiliate-Link möglich · Preis kann sich ändern
+        </div>
       </div>
-    </article>
+    </div>
   );
 }
 
-const pillBase = {
-  padding: "3px 9px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: 800,
-  lineHeight: 1.4
-};
-
 const styles = {
   card: {
-    position: "relative",
     display: "flex",
     flexDirection: "column",
-    background: "rgba(255,255,255,0.94)",
-    border: "1px solid rgba(17,24,39,0.08)",
-    borderRadius: "20px",
+    background: "#fff",
+    borderRadius: "16px",
     overflow: "hidden",
-    boxShadow: "0 14px 44px rgba(0,0,0,0.08)",
-    minHeight: "100%"
+    border: "1px solid #eee",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)"
   },
 
   imageWrap: {
     position: "relative",
-    height: "230px",
-    background: "#ffffff",
-    borderBottom: "1px solid #f3f4f6"
+    height: "220px",
+    background: "#fff"
+  },
+
+  productImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain"
   },
 
   ribbon: {
     position: "absolute",
-    top: "12px",
-    left: "12px",
-    zIndex: 2,
+    top: 10,
+    left: 10,
     background: "#ff9900",
-    color: "#ffffff",
-    padding: "5px 10px",
+    color: "#fff",
+    padding: "4px 10px",
     borderRadius: "999px",
-    fontSize: "12px",
-    fontWeight: 900,
-    boxShadow: "0 8px 20px rgba(0,0,0,0.15)"
+    fontWeight: "bold",
+    fontSize: 12
   },
 
   body: {
-    padding: "16px",
+    padding: 14,
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
-    flex: 1
+    gap: 8
   },
 
   badges: {
     display: "flex",
-    gap: "6px",
+    gap: 6,
     flexWrap: "wrap"
   },
 
   badgeGreen: {
-    ...pillBase,
     background: "#e6f4ea",
-    color: "#0f5132"
+    color: "#0f5132",
+    padding: "2px 8px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: "bold"
   },
 
   badgeRed: {
-    ...pillBase,
     background: "#fdecea",
-    color: "#842029"
+    color: "#842029",
+    padding: "2px 8px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: "bold"
   },
 
   badgeDark: {
-    ...pillBase,
-    background: "#111827",
-    color: "#ffffff"
+    background: "#111",
+    color: "#fff",
+    padding: "2px 8px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: "bold"
   },
 
   title: {
-    margin: 0,
-    color: "#111827",
-    fontSize: "16px",
-    lineHeight: 1.35,
-    fontWeight: 800
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#111"
   },
 
   description: {
-    margin: 0,
-    color: "#4b5563",
-    fontSize: "14px",
-    lineHeight: 1.5,
-    minHeight: "42px"
+    fontSize: 13,
+    color: "#555"
   },
 
   meta: {
     display: "flex",
     justifyContent: "space-between",
-    gap: "12px",
-    flexWrap: "wrap",
-    color: "#6b7280",
-    fontSize: "13px",
-    fontWeight: 600
+    fontSize: 12,
+    color: "#777"
   },
 
-  priceBox: {
-    marginTop: "auto"
-  },
+  priceBox: {},
 
   oldPrice: {
-    color: "#6b7280",
     textDecoration: "line-through",
-    fontSize: "14px",
-    marginBottom: "2px"
+    fontSize: 13,
+    color: "#888"
   },
 
   price: {
-    color: "#111827",
-    fontSize: "26px",
-    fontWeight: 900,
-    letterSpacing: "-0.04em"
+    fontSize: 24,
+    fontWeight: "bold"
   },
 
   save: {
-    color: "#15803d",
-    fontWeight: 800,
-    fontSize: "14px",
-    marginTop: "2px"
+    color: "green",
+    fontWeight: "bold",
+    fontSize: 13
   },
 
   buyBtn: {
-    marginTop: "8px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "44px",
-    borderRadius: "12px",
+    marginTop: 8,
     background: "#ffd814",
-    color: "#111827",
+    textAlign: "center",
+    padding: 10,
+    borderRadius: 10,
+    fontWeight: "bold",
     textDecoration: "none",
-    fontWeight: 900,
-    border: "1px solid #facc15",
-    boxShadow: "0 8px 18px rgba(0,0,0,0.08)"
+    color: "#111"
   },
 
   disabledBtn: {
-    marginTop: "8px",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "44px",
-    borderRadius: "12px",
-    background: "#e5e7eb",
-    color: "#6b7280",
-    fontWeight: 800
+    marginTop: 8,
+    background: "#eee",
+    textAlign: "center",
+    padding: 10,
+    borderRadius: 10,
+    color: "#777"
   },
 
   note: {
-    color: "#9ca3af",
-    fontSize: "12px",
-    lineHeight: 1.4
+    fontSize: 11,
+    color: "#aaa"
   }
 };
