@@ -346,14 +346,17 @@ export default function Home() {
                 sondern zusätzlich nach echten Tracking-Events, Frische, Preis,
                 Featured-Boost und Preisfehler-Signal.
               </p>
-
-              {!session ? (
-                <div style={styles.heroActions}>
-                  <a href="/register" style={styles.ghostBtn}>
-                    Konto erstellen
-                  </a>
-                </div>
-              ) : null}
+              {isAdmin ? (
+  <>
+    <a href="/admin" style={styles.topLink}>
+      Admin
+    </a>
+    <button type="button" onClick={logout} style={styles.topButton}>
+      Logout
+    </button>
+  </>
+) : null}
+              
             </div>
 
             <div style={styles.heroPanel}>
