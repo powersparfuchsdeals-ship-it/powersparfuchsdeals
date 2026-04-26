@@ -8,6 +8,108 @@ const FEEDS = [
   }
 ];
 
+const BLOCK_WORDS = [
+  "dvd",
+  "blu-ray",
+  "bluray",
+  "4k steelbook",
+  "steelbook",
+  "film",
+  "movie",
+  "roman",
+  "buch",
+  "kindle ebook",
+  "hörbuch",
+  "lebensmittel",
+  "kaffee",
+  "wein",
+  "bier",
+  "sneaker",
+  "schuhe",
+  "kleidung",
+  "shirt",
+  "hose",
+  "jacke",
+  "spielzeug",
+  "drogerie",
+  "parfum",
+  "kosmetik",
+  "reise",
+  "hotel",
+  "flug",
+  "gutschein",
+  "lieferando",
+  "restaurant"
+];
+
+const TECH_WORDS = [
+  "iphone",
+  "ipad",
+  "macbook",
+  "samsung",
+  "galaxy",
+  "pixel",
+  "smartphone",
+  "handy",
+  "tablet",
+  "laptop",
+  "notebook",
+  "pc",
+  "monitor",
+  "gaming",
+  "playstation",
+  "ps5",
+  "xbox",
+  "nintendo",
+  "switch",
+  "steam",
+  "ssd",
+  "hdd",
+  "nvme",
+  "ram",
+  "grafikkarte",
+  "rtx",
+  "radeon",
+  "cpu",
+  "ryzen",
+  "intel",
+  "mainboard",
+  "router",
+  "fritzbox",
+  "wifi",
+  "wlan",
+  "kopfhörer",
+  "headset",
+  "soundbar",
+  "lautsprecher",
+  "airpods",
+  "bluetooth",
+  "tv",
+  "fernseher",
+  "oled",
+  "qled",
+  "smart home",
+  "alexa",
+  "echo",
+  "hue",
+  "kamera",
+  "webcam",
+  "drucker",
+  "beamer",
+  "anker",
+  "ugreen",
+  "razer",
+  "logitech",
+  "asus",
+  "acer",
+  "lenovo",
+  "dell",
+  "hp",
+  "msi",
+  "sony",
+  "lg"
+];
+
 function cleanHtml(value = "") {
   return String(value)
     .replace(/<!\[CDATA\[/g, "")
@@ -83,7 +185,7 @@ function parseImage(item = "") {
 function inferCategory(title = "", description = "") {
   const text = `${title} ${description}`.toLowerCase();
 
-  if (text.includes("iphone") || text.includes("smartphone") || text.includes("samsung galaxy")) {
+  if (text.includes("iphone") || text.includes("smartphone") || text.includes("samsung galaxy") || text.includes("pixel")) {
     return "smartphone";
   }
 
@@ -95,19 +197,53 @@ function inferCategory(title = "", description = "") {
     return "laptop";
   }
 
-  if (text.includes("kopfhörer") || text.includes("headset") || text.includes("soundbar") || text.includes("airpods")) {
+  if (text.includes("kopfhörer") || text.includes("headset") || text.includes("soundbar") || text.includes("airpods") || text.includes("lautsprecher")) {
     return "audio";
   }
 
-  if (text.includes("gaming") || text.includes("playstation") || text.includes("xbox") || text.includes("nintendo")) {
+  if (text.includes("gaming") || text.includes("playstation") || text.includes("ps5") || text.includes("xbox") || text.includes("nintendo") || text.includes("steam") || text.includes("razer")) {
     return "gaming";
   }
 
-  if (text.includes("smart home") || text.includes("alexa") || text.includes("hue")) {
+  if (text.includes("smart home") || text.includes("alexa") || text.includes("echo") || text.includes("hue")) {
     return "smarthome";
   }
 
+  if (text.includes("ssd") || text.includes("nvme") || text.includes("ram") || text.includes("rtx") || text.includes("radeon") || text.includes("ryzen") || text.includes("intel")) {
+    return "pc";
+  }
+
   return "tech";
+}
+
+function isSmartDeal({ title, description, price }) {
+  const text = `${title} ${description}`.toLowerCase();
+
+  if (!title || title.length < 5) return false;
+  if (!price || price <= 0) return false;
+  if (price > 3000) return false;
+
+  const hasBlockedWord = BLOCK_WORDS.some((word) => text.includes(word));
+  if (hasBlockedWord) return false;
+
+  const hasTechWord = TECH_WORDS.some((word) => text.includes(word));
+  if (!hasTechWord) return false;
+
+  return true;
+}
+
+function getDealTag(title = "", description = "", price = 0) {
+  const text = `${title} ${description}`.toLowerCase();
+
+  if (text.includes("preisfehler") || text.includes("glitch")) {
+    return "preisfehler";
+  }
+
+  if (price > 0 && price < 10) {
+    return "featured";
+  }
+
+  return "";
 }
 
 function parseFeed(xml, feed) {
@@ -120,9 +256,11 @@ function parseFeed(xml, feed) {
       const description = cleanHtml(extractTag(item, "description"));
       const price = parsePrice(`${title} ${description}`);
       const image = parseImage(item);
-      const lowerTitle = title.toLowerCase();
 
       if (!title || !link) return null;
+
+      const allowed = isSmartDeal({ title, description, price });
+      if (!allowed) return null;
 
       return {
         name: title.slice(0, 180),
@@ -133,24 +271,19 @@ function parseFeed(xml, feed) {
         merchant: feed.merchant || "Feed",
         buy_link: link,
         image,
-        tag:
-          lowerTitle.includes("preisfehler") || lowerTitle.includes("glitch")
-            ? "preisfehler"
-            : "",
+        tag: getDealTag(title, description, price),
         commission_rate: 0.03,
         clicks: 0,
-        source: "auto-feed",
+        source: "auto-feed-smart",
         created_at: new Date().toISOString()
       };
     })
     .filter(Boolean);
 
-  const dealsWithPrice = parsed.filter((p) => Number(p.price || 0) > 0);
-
   return {
     itemsFound: items.length,
     parsedFound: parsed.length,
-    dealsWithPrice,
+    dealsWithPrice: parsed.filter((p) => Number(p.price || 0) > 0),
     sample: parsed.slice(0, 3)
   };
 }
@@ -183,7 +316,7 @@ export default async function handler(req, res) {
         httpStatus: response.status,
         xmlLength: xml.length,
         itemsFound: parsedResult.itemsFound,
-        parsedFound: parsedResult.parsedFound,
+        smartDealsFound: parsedResult.parsedFound,
         dealsWithPrice: parsedResult.dealsWithPrice.length,
         sample: parsedResult.sample
       });
