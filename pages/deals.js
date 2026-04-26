@@ -1,3 +1,4 @@
+import { useRanking } from "../lib/useRanking";
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { supabase } from "../lib/supabase";
@@ -108,7 +109,8 @@ export default function DealsPage() {
     return scoredProducts.filter((p) => {
       const productCategory = String(p.category || "").toLowerCase();
       const tag = String(p.tag || "").toLowerCase();
-
+      const rankedProducts = useRanking(products, trackingEvents);
+      
       const matchesCategory =
         category === "all" ||
         productCategory === category ||
