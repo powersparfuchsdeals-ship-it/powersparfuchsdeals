@@ -7,14 +7,24 @@ function formatPrice(value) {
 
 export default function ProductCard({ p, trackClick }) {
   const product = p || {};
+
   const price = Number(product.price || 0);
   const oldPrice = Number(product.old_price || 0);
   const clicks = Number(product.clicks || 0);
   const tag = String(product.tag || "").toLowerCase();
   const merchant = product.merchant || product.source || "";
   const buyLink = product.buy_link || product.link || "#";
+
+  const imageUrl =
+    product.image && String(product.image).startsWith("http")
+      ? product.image
+      : "/placeholder.png";
+
   const isTopDeal = Number(product.deal_score || 0) > 300 || tag === "featured";
-  const isPriceError = tag === "preisfehler" || String(product.category || "").toLowerCase() === "price-error";
+  const isPriceError =
+    tag === "preisfehler" ||
+    String(product.category || "").toLowerCase() === "price-error";
+
   const hasOldPrice = oldPrice > price && price > 0;
 
   async function handleClick() {
@@ -28,17 +38,16 @@ export default function ProductCard({ p, trackClick }) {
       <div style={styles.imageWrap}>
         {isTopDeal ? <div style={styles.ribbon}>🔥 Top Deal</div> : null}
 
-        {product.image ? (
-          <Image
-            src={product.image}
-            alt={product.name || "Produkt"}
-            fill
-            style={{ objectFit: "contain" }}
-            sizes="(max-width: 768px) 100vw, 260px"
-          />
-        ) : (
-          <div style={styles.noImage}>Kein Bild</div>
-        )}
+        <Image
+          src={imageUrl}
+          alt={product.name || "Produkt"}
+          fill
+          style={{ objectFit: "contain" }}
+          sizes="(max-width: 768px) 100vw, 260px"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.png";
+          }}
+        />
       </div>
 
       <div style={styles.body}>
@@ -46,19 +55,15 @@ export default function ProductCard({ p, trackClick }) {
           <span style={styles.badgeGreen}>Top Deal</span>
 
           {isPriceError ? <span style={styles.badgeRed}>Preisfehler</span> : null}
-
           {clicks > 20 ? <span style={styles.badgeDark}>🔥 Trending</span> : null}
-
           {merchant ? <span style={styles.badgeDark}>{merchant}</span> : null}
         </div>
 
         <h3 style={styles.title}>{product.name || "Unbenanntes Produkt"}</h3>
 
-        {product.description ? (
-          <p style={styles.description}>{product.description}</p>
-        ) : (
-          <p style={styles.description}>Aktuelles Technik-Angebot mit direktem Deal-Link.</p>
-        )}
+        <p style={styles.description}>
+          {product.description || "Aktuelles Technik-Angebot mit direktem Deal-Link."}
+        </p>
 
         <div style={styles.meta}>
           <span>{product.category || "Tech"}</span>
@@ -135,15 +140,6 @@ const styles = {
     fontSize: "12px",
     fontWeight: 900,
     boxShadow: "0 8px 20px rgba(0,0,0,0.15)"
-  },
-
-  noImage: {
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#9ca3af",
-    fontWeight: 700
   },
 
   body: {
