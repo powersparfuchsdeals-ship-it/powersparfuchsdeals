@@ -364,7 +364,6 @@ export default function AdminPage() {
     const COMMISSION_RATE = 0.03;
 
 // Klick-basierte Schätzung
-const estimatedRevenue = totalDbClicks * COMMISSION_RATE;
 
 // Tracking (besser)
 const trackingRevenue = totalTrackingClicks * COMMISSION_RATE;
