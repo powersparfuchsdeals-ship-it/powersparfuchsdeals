@@ -1,0 +1,15 @@
+name: Auto Deals Import
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run auto deals import
+        run: |
+          curl -fsS -X POST https://deals.orbital-noir.com/api/cron/import-auto-deals \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
