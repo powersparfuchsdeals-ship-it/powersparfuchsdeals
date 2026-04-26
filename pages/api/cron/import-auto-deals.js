@@ -112,14 +112,11 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      ok: true,
-      created,
-      skipped
-    });
-  } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: "Auto import failed"
-    });
+  ok: true,
+  created,
+  skipped,
+  debug: {
+    feeds: FEEDS.length,
+    sampleDeals: deals?.slice(0, 3) || []
   }
-}
+});
