@@ -19,7 +19,7 @@ const SUNSET_GRADIENTS = [
 ];
 
 const STEP_DURATION_MS = 5 * 60 * 1000;
-
+const COMMISSION_RATE = 0.03;
 const EMPTY_PRODUCT = {
   name: "",
   price: "",
@@ -361,7 +361,16 @@ export default function AdminPage() {
     );
 
     const totalTrackingClicks = trackingEvents.filter((e) => e.type === "click").length;
+    const COMMISSION_RATE = 0.03;
 
+// Klick-basierte Schätzung
+const estimatedRevenue = totalDbClicks * COMMISSION_RATE;
+
+// Tracking (besser)
+const trackingRevenue = totalTrackingClicks * COMMISSION_RATE;
+
+// Heute (optional)
+const todayRevenue = trackingRevenue;
     const todayRevenue = todayTrackingClicks.reduce(
       (sum, event) => sum + Number(event.estimated_revenue || 0),
       0
@@ -474,7 +483,17 @@ export default function AdminPage() {
             <div style={styles.statLabel}>Produkte</div>
             <div style={styles.statValue}>{stats.totalProducts}</div>
           </div>
+          <div>
+  💰 Einnahmen: <strong>{stats.estimatedRevenue.toFixed(2)} €</strong>
+</div>
 
+<div>
+  📊 Tracking Einnahmen: <strong>{stats.trackingRevenue.toFixed(2)} €</strong>
+</div>
+
+<div>
+  🔥 Heute: <strong>{stats.todayRevenue.toFixed(2)} €</strong>
+</div> 
           <div style={styles.statCard}>
             <div style={styles.statLabel}>DB Klicks</div>
             <div style={styles.statValue}>{stats.totalDbClicks}</div>
