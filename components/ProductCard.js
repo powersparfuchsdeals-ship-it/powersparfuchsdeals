@@ -16,9 +16,11 @@ export default function ProductCard({ p, trackClick }) {
   const buyLink = product.buy_link || product.link || "#";
 
   const imageUrl =
-    product.image && String(product.image).startsWith("http")
-      ? product.image
-      : "/placeholder.png";
+  product.image &&
+  String(product.image).startsWith("http") &&
+  !String(product.image).includes("amazon")
+    ? product.image
+    : "/placeholder.png";
 
   const isTopDeal = Number(product.deal_score || 0) > 300 || tag === "featured";
   const isPriceError =
