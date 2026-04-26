@@ -366,7 +366,6 @@ export default function AdminPage() {
 // Klick-basierte Schätzung
 
 // Tracking (besser)
-const trackingRevenue = totalTrackingClicks * COMMISSION_RATE;
 
 // Heute (optional)
 const trackingRevenue = trackingEvents
