@@ -29,6 +29,11 @@ const EMPTY_PRODUCT = {
   buy_link: "",
   description: "",
   tag: ""
+    
+  merchant: "",
+commission_rate: "0.03",
+old_price: ""
+
 };
 
 function formatPrice(value) {
@@ -245,6 +250,10 @@ export default function AdminPage() {
       clicks: 0,
       source: "manual",
       created_at: new Date().toISOString()
+
+     merchant: newProduct.merchant.trim(),
+     old_price: Number(newProduct.old_price || 0),
+     commission_rate: Number(newProduct.commission_rate || 0.03), 
     };
 
     const { error } = await supabase.from("products").insert([payload]);
@@ -588,9 +597,41 @@ export default function AdminPage() {
               value={newProduct.name}
               onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
               style={styles.input}
-            />
 
-            <input
+             <input
+  placeholder="Händler (z.B. OTTO, Amazon)"
+  value={newProduct.merchant}
+  onChange={(e) =>
+    setNewProduct({ ...newProduct, merchant: e.target.value })
+  }
+  style={styles.input}
+/>
+
+<input
+  placeholder="Alter Preis (€)"
+  type="number"
+  value={newProduct.old_price}
+  onChange={(e) =>
+    setNewProduct({ ...newProduct, old_price: e.target.value })
+  }
+  style={styles.input}
+/>
+
+<input
+  placeholder="Provision (z.B. 0.03)"
+  type="number"
+  step="0.01"
+  value={newProduct.commission_rate}
+  onChange={(e) =>
+    setNewProduct({
+      ...newProduct,
+      commission_rate: e.target.value
+    })
+  }
+  style={styles.input}
+/>  
+
+              <input
               placeholder="Preis (€)"
               type="number"
               value={newProduct.price}
