@@ -1,4 +1,11 @@
-import Image from "next/image";
+<img
+  src={imageUrl}
+  alt={product.name || "Produkt"}
+  style={styles.productImage}
+  onError={(e) => {
+    e.currentTarget.src = "/placeholder.png";
+  }}
+/>
 
 function formatPrice(value) {
   const n = Number(value || 0);
