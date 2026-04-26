@@ -1,3 +1,4 @@
+<Image ... />
 <img
   src={imageUrl}
   alt={product.name || "Produkt"}
