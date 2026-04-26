@@ -369,15 +369,14 @@ export default function AdminPage() {
 const trackingRevenue = totalTrackingClicks * COMMISSION_RATE;
 
 // Heute (optional)
-const todayRevenue = trackingRevenue;
-    const todayRevenue = todayTrackingClicks.reduce(
-      (sum, event) => sum + Number(event.estimated_revenue || 0),
-      0
-    );
+const trackingRevenue = trackingEvents
+  .filter((e) => e.type === "click")
+  .reduce((sum, event) => sum + Number(event.estimated_revenue || 0), 0);
 
-    const trackingRevenue = trackingEvents
-      .filter((e) => e.type === "click")
-      .reduce((sum, event) => sum + Number(event.estimated_revenue || 0), 0);
+const todayRevenue = todayTrackingClicks.reduce(
+  (sum, event) => sum + Number(event.estimated_revenue || 0),
+  0
+);
 
     const estimatedRevenue = products.reduce((sum, product) => sum + getRevenue(product), 0);
 
