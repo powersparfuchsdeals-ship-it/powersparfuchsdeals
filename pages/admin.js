@@ -19,7 +19,6 @@ const SUNSET_GRADIENTS = [
 ];
 
 const STEP_DURATION_MS = 5 * 60 * 1000;
-const COMMISSION_RATE = 0.03;
 
 const EMPTY_PRODUCT = {
   name: "",
@@ -28,12 +27,10 @@ const EMPTY_PRODUCT = {
   image: "",
   buy_link: "",
   description: "",
-  tag: ""
-    
+  tag: "",
   merchant: "",
-commission_rate: "0.03",
-old_price: ""
-
+  old_price: "",
+  commission_rate: "0.03"
 };
 
 function formatPrice(value) {
@@ -47,7 +44,10 @@ function hoursAgo(dateString) {
 }
 
 function getRevenue(product) {
-  return Number(product.price || 0) * Number(product.clicks || 0) * COMMISSION_RATE;
+  const price = Number(product.price || 0);
+  const clicks = Number(product.clicks || 0);
+  const commissionRate = Number(product.commission_rate || 0.03);
+  return price * clicks * commissionRate;
 }
 
 export default function AdminPage() {
@@ -217,9 +217,7 @@ export default function AdminPage() {
       }
 
       setImportMessage(
-        `✅ Fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${
-          data.skipped || 0
-        } übersprungen.`
+        `✅ Fertig: ${data.created || 0} neu, ${data.updated || 0} aktualisiert, ${data.skipped || 0} übersprungen.`
       );
 
       await Promise.all([loadProducts(), loadTracking()]);
@@ -247,13 +245,12 @@ export default function AdminPage() {
       buy_link: newProduct.buy_link.trim(),
       description: newProduct.description.trim(),
       tag: newProduct.tag.trim(),
+      merchant: newProduct.merchant.trim(),
+      old_price: Number(newProduct.old_price || 0),
+      commission_rate: Number(newProduct.commission_rate || 0.03),
       clicks: 0,
       source: "manual",
       created_at: new Date().toISOString()
-
-     merchant: newProduct.merchant.trim(),
-     old_price: Number(newProduct.old_price || 0),
-     commission_rate: Number(newProduct.commission_rate || 0.03), 
     };
 
     const { error } = await supabase.from("products").insert([payload]);
@@ -365,6 +362,17 @@ export default function AdminPage() {
 
     const totalTrackingClicks = trackingEvents.filter((e) => e.type === "click").length;
 
+    const todayRevenue = todayTrackingClicks.reduce(
+      (sum, event) => sum + Number(event.estimated_revenue || 0),
+      0
+    );
+
+    const trackingRevenue = trackingEvents
+      .filter((e) => e.type === "click")
+      .reduce((sum, event) => sum + Number(event.estimated_revenue || 0), 0);
+
+    const estimatedRevenue = products.reduce((sum, product) => sum + getRevenue(product), 0);
+
     const featuredCount = products.filter(
       (p) => String(p.tag || "").toLowerCase() === "featured"
     ).length;
@@ -375,35 +383,23 @@ export default function AdminPage() {
         String(p.category || "").toLowerCase() === "price-error"
     ).length;
 
-    const estimatedRevenue = products.reduce((sum, product) => sum + getRevenue(product), 0);
-
     return {
       totalProducts,
       totalDbClicks,
       totalTrackingClicks,
       featuredCount,
       priceErrorCount,
-      estimatedRevenue
+      estimatedRevenue,
+      trackingRevenue,
+      todayRevenue
     };
-  }, [products, trackingEvents]);
+  }, [products, trackingEvents, todayTrackingClicks]);
 
   if (!isReady) {
     return (
       <div style={styles.page}>
-        <div
-          style={{
-            ...styles.gradientLayer,
-            background: gradientA,
-            opacity: showLayerA ? 1 : 0
-          }}
-        />
-        <div
-          style={{
-            ...styles.gradientLayer,
-            background: gradientB,
-            opacity: showLayerA ? 0 : 1
-          }}
-        />
+        <div style={{ ...styles.gradientLayer, background: gradientA, opacity: showLayerA ? 1 : 0 }} />
+        <div style={{ ...styles.gradientLayer, background: gradientB, opacity: showLayerA ? 0 : 1 }} />
         <div style={styles.vignette} />
         <div style={styles.gridNoise} />
         <div style={styles.loadingWrap}>
@@ -417,40 +413,21 @@ export default function AdminPage() {
 
   return (
     <div style={styles.page}>
-      <div
-        style={{
-          ...styles.gradientLayer,
-          background: gradientA,
-          opacity: showLayerA ? 1 : 0
-        }}
-      />
-      <div
-        style={{
-          ...styles.gradientLayer,
-          background: gradientB,
-          opacity: showLayerA ? 0 : 1
-        }}
-      />
+      <div style={{ ...styles.gradientLayer, background: gradientA, opacity: showLayerA ? 1 : 0 }} />
+      <div style={{ ...styles.gradientLayer, background: gradientB, opacity: showLayerA ? 0 : 1 }} />
 
       <div style={styles.vignette} />
       <div style={styles.gridNoise} />
 
       <header style={styles.topbarWrap}>
         <div style={styles.topbar}>
-          <a href="/" style={styles.brand}>
-            Orbital-Noir
-          </a>
+          <a href="/" style={styles.brand}>Orbital-Noir</a>
 
           <div style={styles.navLinks}>
-            <a href="/" style={styles.topLink}>
-              Shop
-            </a>
-            <a href="/preisfehler" style={styles.topLink}>
-              Preisfehler
-            </a>
-            <button type="button" onClick={logout} style={styles.topButton}>
-              Logout
-            </button>
+            <a href="/" style={styles.topLink}>Shop</a>
+            <a href="/preisfehler" style={styles.topLink}>Preisfehler</a>
+            <a href="/deals" style={styles.topLink}>Deals</a>
+            <button type="button" onClick={logout} style={styles.topButton}>Logout</button>
           </div>
         </div>
       </header>
@@ -461,24 +438,20 @@ export default function AdminPage() {
             <div style={styles.microLabel}>Orbital-Noir / Admin</div>
             <h1 style={styles.heroTitle}>Dashboard im Sunset-Modus.</h1>
             <p style={styles.heroText}>
-              Hier siehst du Produkte, Tracking, Einnahmen-Schätzung, Cron-Imports und
-              kannst Angebote manuell erstellen.
+              Produkte, Tracking, Einnahmen-Schätzung, Cron-Imports und manuelle Angebote.
             </p>
 
             <div style={styles.heroActions}>
-              <a href="/" style={styles.ghostBtn}>
-                Zum Shop
-              </a>
-              <a href="/preisfehler" style={styles.ghostBtn}>
-                Preisfehler
-              </a>
+              <a href="/" style={styles.ghostBtn}>Zum Shop</a>
+              <a href="/preisfehler" style={styles.ghostBtn}>Preisfehler</a>
+              <a href="/deals" style={styles.ghostBtn}>Deals-Seite</a>
             </div>
           </div>
 
           <div style={styles.heroPanel}>
             <div style={styles.frameTop}>
               <span style={styles.statusDot} />
-              <span>Live Admin Übersicht</span>
+              <span>Geld-System aktiv</span>
             </div>
 
             <div style={styles.visualCore}>
@@ -486,10 +459,10 @@ export default function AdminPage() {
               <div style={styles.ringB} />
               <div style={styles.ringC} />
               <div style={styles.coreCard}>
-                <div style={styles.coreKicker}>Control Center</div>
-                <div style={styles.coreTitle}>Products + Tracking</div>
+                <div style={styles.coreKicker}>Revenue System</div>
+                <div style={styles.coreTitle}>Clicks + Provision</div>
                 <div style={styles.coreText}>
-                  Ranking, Klicks, Imports und manuelle Angebote in einem Dashboard.
+                  Klicks speichern Händler, Preis und geschätzte Provision.
                 </div>
               </div>
             </div>
@@ -513,17 +486,17 @@ export default function AdminPage() {
           </div>
 
           <div style={styles.statCard}>
-            <div style={styles.statLabel}>Featured</div>
-            <div style={styles.statValue}>{stats.featuredCount}</div>
+            <div style={styles.statLabel}>Einnahmen heute</div>
+            <div style={styles.statValue}>{formatPrice(stats.todayRevenue)}</div>
           </div>
 
           <div style={styles.statCard}>
-            <div style={styles.statLabel}>Preisfehler</div>
-            <div style={styles.statValue}>{stats.priceErrorCount}</div>
+            <div style={styles.statLabel}>Tracking Einnahmen</div>
+            <div style={styles.statValue}>{formatPrice(stats.trackingRevenue)}</div>
           </div>
 
           <div style={styles.statCard}>
-            <div style={styles.statLabel}>geschätzte Einnahmen</div>
+            <div style={styles.statLabel}>geschätzt gesamt</div>
             <div style={styles.statValue}>{formatPrice(stats.estimatedRevenue)}</div>
           </div>
         </section>
@@ -538,39 +511,19 @@ export default function AdminPage() {
           </div>
 
           <div style={styles.quickGrid}>
-            <button
-              type="button"
-              onClick={() => runImport("/api/cron/import-amazon")}
-              disabled={importLoading}
-              style={styles.actionBtn}
-            >
+            <button type="button" onClick={() => runImport("/api/cron/import-amazon")} disabled={importLoading} style={styles.actionBtn}>
               Amazon Import starten
             </button>
 
-            <button
-              type="button"
-              onClick={() => runImport("/api/admin/import-preisfehler")}
-              disabled={importLoading}
-              style={styles.actionBtn}
-            >
+            <button type="button" onClick={() => runImport("/api/admin/import-preisfehler")} disabled={importLoading} style={styles.actionBtn}>
               Preisfehler Import starten
             </button>
 
-            <button
-              type="button"
-              onClick={() => runImport("/api/admin/import-featured")}
-              disabled={importLoading}
-              style={styles.actionBtn}
-            >
+            <button type="button" onClick={() => runImport("/api/admin/import-featured")} disabled={importLoading} style={styles.actionBtn}>
               Featured Import starten
             </button>
 
-            <button
-              type="button"
-              onClick={() => runImport("/api/admin/import-otto-awin")}
-              disabled={importLoading}
-              style={styles.actionBtn}
-            >
+            <button type="button" onClick={() => runImport("/api/admin/import-otto-awin")} disabled={importLoading} style={styles.actionBtn}>
               OTTO / Awin Import starten
             </button>
           </div>
@@ -588,101 +541,32 @@ export default function AdminPage() {
               <div style={styles.microLabel}>Manuell</div>
               <h2 style={styles.sectionTitle}>Produkt hinzufügen</h2>
             </div>
-            <p style={styles.sectionText}>Neues Angebot direkt erstellen.</p>
+            <p style={styles.sectionText}>Neues Angebot mit Händler, altem Preis und Provision erstellen.</p>
           </div>
 
           <div style={styles.formGrid}>
-            <input
-              placeholder="Produktname"
-              value={newProduct.name}
-              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-              style={styles.input}
+            <input placeholder="Produktname" value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} style={styles.input} />
 
-             <input
-  placeholder="Händler (z.B. OTTO, Amazon)"
-  value={newProduct.merchant}
-  onChange={(e) =>
-    setNewProduct({ ...newProduct, merchant: e.target.value })
-  }
-  style={styles.input}
-/>
+            <input placeholder="Preis (€)" type="number" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} style={styles.input} />
 
-<input
-  placeholder="Alter Preis (€)"
-  type="number"
-  value={newProduct.old_price}
-  onChange={(e) =>
-    setNewProduct({ ...newProduct, old_price: e.target.value })
-  }
-  style={styles.input}
-/>
+            <input placeholder="Alter Preis (€)" type="number" value={newProduct.old_price} onChange={(e) => setNewProduct({ ...newProduct, old_price: e.target.value })} style={styles.input} />
 
-<input
-  placeholder="Provision (z.B. 0.03)"
-  type="number"
-  step="0.01"
-  value={newProduct.commission_rate}
-  onChange={(e) =>
-    setNewProduct({
-      ...newProduct,
-      commission_rate: e.target.value
-    })
-  }
-  style={styles.input}
-/>  
+            <input placeholder="Händler z.B. OTTO / Amazon" value={newProduct.merchant} onChange={(e) => setNewProduct({ ...newProduct, merchant: e.target.value })} style={styles.input} />
 
-              <input
-              placeholder="Preis (€)"
-              type="number"
-              value={newProduct.price}
-              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-              style={styles.input}
-            />
+            <input placeholder="Provision z.B. 0.03" type="number" step="0.01" value={newProduct.commission_rate} onChange={(e) => setNewProduct({ ...newProduct, commission_rate: e.target.value })} style={styles.input} />
 
-            <input
-              placeholder="Kategorie z.B. smartphone"
-              value={newProduct.category}
-              onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-              style={styles.input}
-            />
+            <input placeholder="Kategorie z.B. smartphone" value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })} style={styles.input} />
 
-            <input
-              placeholder="Bild URL"
-              value={newProduct.image}
-              onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-              style={styles.input}
-            />
+            <input placeholder="Bild URL" value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} style={styles.input} />
 
-            <input
-              placeholder="Affiliate / Buy Link"
-              value={newProduct.buy_link}
-              onChange={(e) => setNewProduct({ ...newProduct, buy_link: e.target.value })}
-              style={styles.input}
-            />
+            <input placeholder="Affiliate / Buy Link" value={newProduct.buy_link} onChange={(e) => setNewProduct({ ...newProduct, buy_link: e.target.value })} style={styles.input} />
 
-            <input
-              placeholder="Tag z.B. featured / preisfehler"
-              value={newProduct.tag}
-              onChange={(e) => setNewProduct({ ...newProduct, tag: e.target.value })}
-              style={styles.input}
-            />
+            <input placeholder="Tag z.B. featured / preisfehler" value={newProduct.tag} onChange={(e) => setNewProduct({ ...newProduct, tag: e.target.value })} style={styles.input} />
 
-            <textarea
-              placeholder="Beschreibung"
-              value={newProduct.description}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, description: e.target.value })
-              }
-              style={styles.textarea}
-            />
+            <textarea placeholder="Beschreibung" value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} style={styles.textarea} />
           </div>
 
-          <button
-            type="button"
-            onClick={createProduct}
-            disabled={createLoading}
-            style={styles.actionBtn}
-          >
+          <button type="button" onClick={createProduct} disabled={createLoading} style={styles.actionBtn}>
             {createLoading ? "Wird erstellt..." : "➕ Produkt erstellen"}
           </button>
 
@@ -693,9 +577,9 @@ export default function AdminPage() {
           <div style={styles.sectionHead}>
             <div>
               <div style={styles.microLabel}>Money</div>
-              <h2 style={styles.sectionTitle}>Geschätzte Einnahmen</h2>
+              <h2 style={styles.sectionTitle}>Top Produkte nach Einnahmen</h2>
             </div>
-            <p style={styles.sectionText}>Basierend auf 3% geschätzter Provision.</p>
+            <p style={styles.sectionText}>Basierend auf Preis × Klicks × Provision.</p>
           </div>
 
           <div style={styles.list}>
@@ -707,7 +591,7 @@ export default function AdminPage() {
                   <div style={styles.listMain}>
                     <div style={styles.listTitle}>{product.name}</div>
                     <div style={styles.listMeta}>
-                      {product.dbClicks} Klicks · {formatPrice(product.price)}
+                      {product.merchant || product.source || "Kein Händler"} · {product.dbClicks} Klicks · {formatPrice(product.price)} · Provision {Number(product.commission_rate || 0.03)}
                     </div>
                   </div>
 
@@ -732,6 +616,7 @@ export default function AdminPage() {
               <thead>
                 <tr>
                   <th style={styles.th}>Produkt</th>
+                  <th style={styles.th}>Händler</th>
                   <th style={styles.th}>Preis</th>
                   <th style={styles.th}>DB Klicks</th>
                   <th style={styles.th}>Tracking</th>
@@ -742,6 +627,7 @@ export default function AdminPage() {
                 {topProducts.map((product) => (
                   <tr key={product.id}>
                     <td style={styles.td}>{product.name}</td>
+                    <td style={styles.td}>{product.merchant || product.source || "-"}</td>
                     <td style={styles.td}>{formatPrice(product.price)}</td>
                     <td style={styles.td}>{product.dbClicks}</td>
                     <td style={styles.td}>{product.trackingClicks}</td>
@@ -981,7 +867,8 @@ const styles = {
     position: "relative",
     height: "320px",
     borderRadius: "22px",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(243,244,246,0.94))",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(243,244,246,0.94))",
     overflow: "hidden",
     border: "1px solid rgba(17,24,39,0.06)"
   },
