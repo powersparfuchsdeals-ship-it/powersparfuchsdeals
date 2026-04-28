@@ -192,32 +192,32 @@ export default function AdminPage() {
   setCreateMsg("Produkt wird erstellt...");
 
   try {
-    const res = await fetch("/api/admin-create-product", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newProduct),
-    });
+  const res = await fetch("/api/admin-create-product", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(newProduct),
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if (!res.ok || !data.ok) {
-      setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
-      console.error(data);
-      return;
-    }
-
-    setCreateMsg("✅ Produkt wurde erstellt.");
-    setNewProduct({ ...EMPTY_PRODUCT });
-    await loadProducts();
-  } catch (err) {
-    console.error(err);
-    setCreateMsg("❌ Fehler: " + err.message);
-  } finally {
-    setCreateLoading(false);
+  if (!res.ok || !data.ok) {
+    console.error("API Fehler:", data);
+    setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
+    return;
   }
-}}
+
+  setCreateMsg("✅ Produkt wurde erstellt.");
+  setNewProduct({ ...EMPTY_PRODUCT });
+  await loadProducts();
+} catch (error) {
+  console.error("Create product error:", error);
+  setCreateMsg("❌ Produkt konnte nicht erstellt werden. Siehe Browser-Konsole.");
+} finally {
+  setCreateLoading(false);
+}
+}
 
       const { error } = await supabase.from("products").insert([payload]);
 
