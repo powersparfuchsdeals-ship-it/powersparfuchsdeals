@@ -217,7 +217,6 @@ export default function AdminPage() {
 } finally {
   setCreateLoading(false);
 }
-}
 
       const { error } = await supabase.from("products").insert([payload]);
 
