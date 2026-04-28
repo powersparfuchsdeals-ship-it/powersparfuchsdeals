@@ -192,21 +192,32 @@ export default function AdminPage() {
     setCreateMsg("Produkt wird erstellt...");
 
     try {
-      const payload = {
-        name: newProduct.name.trim(),
-        price: Number(newProduct.price || 0),
-        category: newProduct.category.trim() || "other",
-        image: newProduct.image.trim() || "/placeholder.png",
-        buy_link: newProduct.buy_link.trim(),
-        description: newProduct.description.trim(),
-        tag: newProduct.tag.trim(),
-        merchant: newProduct.merchant.trim(),
-        old_price: Number(newProduct.old_price || 0),
-        commission_rate: Number(newProduct.commission_rate || 0.03),
-        clicks: 0,
-        source: "manual",
-        created_at: new Date().toISOString(),
-      };
+  const res = await fetch("/api/admin-create-product", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(newProduct),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.ok) {
+    setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
+    console.error(data);
+    return;
+  }
+
+  setCreateMsg("✅ Produkt wurde erstellt.");
+  setNewProduct({ ...EMPTY_PRODUCT });
+
+  await loadProducts();
+} catch (err) {
+  console.error(err);
+  setCreateMsg("❌ Fehler: " + err.message);
+} finally {
+  setCreateLoading(false);
+}
 
       const { error } = await supabase.from("products").insert([payload]);
 
