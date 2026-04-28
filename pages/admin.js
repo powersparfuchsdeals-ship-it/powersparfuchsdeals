@@ -581,7 +581,7 @@ export default function AdminPage() {
           <div style={styles.sectionHead}>
             <div>
               <div style={styles.micro}>Produkte</div>
-              <h2 style={styles.sectionTitle}>Top Produkte</h2>
+              <h2 style={styles.sectionTitle}>Alle Produkte</h2>
             </div>
           </div>
 
@@ -598,7 +598,7 @@ export default function AdminPage() {
               </thead>
 
               <tbody>
-                {topProducts.map((product) => (
+                {products.map((product) => (
                   <tr key={product.id}>
                     <td style={styles.td}>{product.name}</td>
                     <td style={styles.td}>
