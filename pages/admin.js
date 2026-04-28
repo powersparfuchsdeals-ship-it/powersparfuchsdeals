@@ -312,331 +312,122 @@ return (
     </header>
 
     <main style={styles.shell}>
-        <section style={styles.hero}>
-          <h1 style={styles.title}>Admin Dashboard</h1>
-          <p style={styles.text}>
-            Produkte, Imports, Tracking und manuelle Angebote.
-          </p>
-        </section>
+  {/* HERO */}
+  <section style={styles.hero}>
+    <h1 style={styles.title}>Admin Dashboard</h1>
+    <p style={styles.text}>
+      Produkte, Imports, Tracking und manuelle Angebote.
+    </p>
+  </section>
 
-        <section style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Produkte</div>
-            <div style={styles.statValue}>{stats.totalProducts}</div>
-          </div>
-
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>DB Klicks</div>
-            <div style={styles.statValue}>{stats.totalDbClicks}</div>
-          </div>
-
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Tracking Klicks</div>
-            <div style={styles.statValue}>{stats.totalTrackingClicks}</div>
-          </div>
-
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Geschätzt gesamt</div>
-            <div style={styles.statValue}>
-              {formatPrice(stats.estimatedRevenue)}
-            </div>
-          </div>
-        </section>
-
-        <section style={styles.card}>
-          <div style={styles.sectionHead}>
-            <div>
-              <div style={styles.micro}>Imports</div>
-              <h2 style={styles.sectionTitle}>Cron & Import Aktionen</h2>
-            </div>
-          </div>
-
-          <div style={styles.quickGrid}>
-            <button
-              type="button"
-              onClick={() => runImport("/api/cron/import-amazon")}
-              disabled={importLoading}
-              style={styles.button}
-            >
-              Amazon Import starten
-            </button>
-
-            <button
-              type="button"
-              onClick={() => runImport("/api/admin/import-preisfehler")}
-              disabled={importLoading}
-              style={styles.button}
-            >
-              Preisfehler Import starten
-            </button>
-
-            <button
-              type="button"
-              onClick={() => runImport("/api/admin/import-featured")}
-              disabled={importLoading}
-              style={styles.button}
-            >
-              Featured Import starten
-            </button>
-
-            <button
-              type="button"
-              onClick={() => runImport("/api/admin/import-otto-awin")}
-              disabled={importLoading}
-              style={styles.button}
-            >
-              OTTO / Awin Import starten
-            </button>
-          </div>
-
-          {importMessage ? <div style={styles.message}>{importMessage}</div> : null}
-
-          <div style={styles.importBox}>
-            <AdminImport />
-          </div>
-        </section>
-
-        <section style={styles.card}>
-          <div style={styles.sectionHead}>
-            <div>
-              <div style={styles.micro}>Manuell</div>
-              <h2 style={styles.sectionTitle}>Produkt hinzufügen</h2>
-            </div>
-          </div>
-
-          <div style={styles.formGrid}>
-            <input
-              placeholder="Produktname"
-              value={newProduct.name}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, name: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Preis (€)"
-              type="number"
-              value={newProduct.price}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, price: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Alter Preis (€)"
-              type="number"
-              value={newProduct.old_price}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, old_price: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Händler z.B. OTTO / Amazon"
-              value={newProduct.merchant}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, merchant: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Provision z.B. 0.03"
-              type="number"
-              step="0.01"
-              value={newProduct.commission_rate}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  commission_rate: e.target.value,
-                })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Kategorie z.B. smartphone"
-              value={newProduct.category}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, category: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Bild URL"
-              value={newProduct.image}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, image: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Affiliate / Buy Link"
-              value={newProduct.buy_link}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, buy_link: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <input
-              placeholder="Tag z.B. featured / preisfehler"
-              value={newProduct.tag}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, tag: e.target.value })
-              }
-              style={styles.input}
-            />
-
-            <textarea
-              placeholder="Beschreibung"
-              value={newProduct.description}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, description: e.target.value })
-              }
-              style={styles.textarea}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={createProduct}
-            disabled={createLoading}
-            style={styles.button}
-          >
-            {createLoading ? "Wird erstellt..." : "➕ Produkt erstellen"}
-          </button>
-          <button
-  onClick={() => deleteProduct(product.id)}
-  style={{
-    background: "red",
-    color: "white",
-    border: "none",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  }}
->
-  Löschen
-</button>
-          {createMsg ? <div style={styles.message}>{createMsg}</div> : null}
-        </section>
-        <section style={styles.card}>
-  <div style={styles.sectionHead}>
-    <div>
-      <div style={styles.micro}>Produkte</div>
-      <h2 style={styles.sectionTitle}>Alle Produkte</h2>
+  {/* STATS */}
+  <section style={styles.statsGrid}>
+    <div style={styles.statCard}>
+      <div style={styles.statLabel}>Produkte</div>
+      <div style={styles.statValue}>{stats.totalProducts}</div>
     </div>
-  </div>
-  <div>Produkte: {products.length}</div>
-  <div style={styles.tableWrap}>
-    <table style={styles.table}>
-      <thead>
-        <tr>
-          <th style={styles.th}>Produkt</th>
-          <th style={styles.th}>Händler</th>
-          <th style={styles.th}>Preis</th>
-          <th style={styles.th}>Klicks</th>
-          <th style={styles.th}>Einnahmen</th>
-          <th style={styles.th}>Aktion</th>
-        </tr>
-      </thead>
 
-      <tbody>
-        {products.map((product) => (
-          <tr key={product.id}>
-            <td style={styles.td}>{product.name}</td>
-            <td style={styles.td}>
-              {product.merchant || product.source || "-"}
-            </td>
-            <td style={styles.td}>{formatPrice(product.price)}</td>
-            <td style={styles.td}>{Number(product.clicks || 0)}</td>
-            <td style={styles.tdStrong}>
-              {formatPrice(getRevenue(product))}
-            </td>
-            <td style={styles.td}>
-              <button
-                type="button"
-                onClick={() => deleteProduct(product.id)}
-                style={{
-                  background: "#dc2626",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "8px 10px",
-                  cursor: "pointer",
-                  fontWeight: 800,
-                }}
-              >
-                Löschen
-              </button>
-            </td>
+    <div style={styles.statCard}>
+      <div style={styles.statLabel}>DB Klicks</div>
+      <div style={styles.statValue}>{stats.totalDbClicks}</div>
+    </div>
+
+    <div style={styles.statCard}>
+      <div style={styles.statLabel}>Tracking Klicks</div>
+      <div style={styles.statValue}>{stats.totalTrackingClicks}</div>
+    </div>
+
+    <div style={styles.statCard}>
+      <div style={styles.statLabel}>Geschätzt gesamt</div>
+      <div style={styles.statValue}>
+        {formatPrice(stats.estimatedRevenue)}
+      </div>
+    </div>
+  </section>
+
+  {/* IMPORTS */}
+  <section style={styles.card}>
+    <div style={styles.sectionHead}>
+      <div>
+        <div style={styles.micro}>Imports</div>
+        <h2 style={styles.sectionTitle}>Cron & Import Aktionen</h2>
+      </div>
+    </div>
+
+    <div style={styles.quickGrid}>
+      <button onClick={() => runImport("/api/cron/import-amazon")} style={styles.button}>
+        Amazon Import
+      </button>
+
+      <button onClick={() => runImport("/api/admin/import-preisfehler")} style={styles.button}>
+        Preisfehler Import
+      </button>
+    </div>
+  </section>
+
+  {/* PRODUKTE */}
+  <section style={styles.card}>
+    <div style={styles.sectionHead}>
+      <div>
+        <div style={styles.micro}>Produkte</div>
+        <h2 style={styles.sectionTitle}>Alle Produkte</h2>
+      </div>
+    </div>
+
+    <div style={styles.message}>
+      Produkte geladen: {products.length}
+    </div>
+
+    <div style={styles.tableWrap}>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Produkt</th>
+            <th style={styles.th}>Händler</th>
+            <th style={styles.th}>Preis</th>
+            <th style={styles.th}>Klicks</th>
+            <th style={styles.th}>Einnahmen</th>
+            <th style={styles.th}>Aktion</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</section>
-<section style={styles.card}>
-          <div style={styles.sectionHead}>
-            <div>
-              <div style={styles.micro}>Produkte</div>
-              <h2 style={styles.sectionTitle}>Alle Produkte</h2>
-            </div>
-          </div>
+        </thead>
 
-          <div style={styles.message}>Produkte geladen: {products.length}</div>
-
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Produkt</th>
-                  <th style={styles.th}>Händler</th>
-                  <th style={styles.th}>Preis</th>
-                  <th style={styles.th}>Klicks</th>
-                  <th style={styles.th}>Einnahmen</th>
-                  <th style={styles.th}>Aktion</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td style={styles.td}>{product.name || product.title || "Ohne Name"}</td>
-                    <td style={styles.td}>{product.merchant || product.source || "-"}</td>
-                    <td style={styles.td}>{formatPrice(product.price)}</td>
-                    <td style={styles.td}>{Number(product.clicks || 0)}</td>
-                    <td style={styles.tdStrong}>{formatPrice(getRevenue(product))}</td>
-                    <td style={styles.td}>
-                      <button
-                        type="button"
-                        onClick={() => deleteProduct(product.id)}
-                        style={{
-                          background: "#dc2626",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "8px",
-                          padding: "8px 10px",
-                          cursor: "pointer",
-                          fontWeight: 800,
-                        }}
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+        <tbody>
+          {products.map((product) => (
+            <tr key={product.id}>
+              <td style={styles.td}>
+                {product.name || product.title || "Ohne Name"}
+              </td>
+              <td style={styles.td}>
+                {product.merchant || product.source || "-"}
+              </td>
+              <td style={styles.td}>{formatPrice(product.price)}</td>
+              <td style={styles.td}>{Number(product.clicks || 0)}</td>
+              <td style={styles.tdStrong}>
+                {formatPrice(getRevenue(product))}
+              </td>
+              <td style={styles.td}>
+                <button
+                  onClick={() => deleteProduct(product.id)}
+                  style={{
+                    background: "#dc2626",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "8px 10px",
+                    cursor: "pointer",
+                    fontWeight: 800,
+                  }}
+                >
+                  Löschen
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
     </div>
   );
 }
