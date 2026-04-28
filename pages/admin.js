@@ -181,43 +181,43 @@ export default function AdminPage() {
   }
 
   async function createProduct() {
-    if (createLoading) return;
+  if (createLoading) return;
 
-    if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
-      setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
-      return;
-    }
-
-    setCreateLoading(true);
-    setCreateMsg("Produkt wird erstellt...");
-
-    try {
-  const res = await fetch("/api/admin-create-product", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(newProduct),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok || !data.ok) {
-    setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
-    console.error(data);
+  if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
+    setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
     return;
   }
 
-  setCreateMsg("✅ Produkt wurde erstellt.");
-  setNewProduct({ ...EMPTY_PRODUCT });
+  setCreateLoading(true);
+  setCreateMsg("Produkt wird erstellt...");
 
-  await loadProducts();
-} catch (err) {
-  console.error(err);
-  setCreateMsg("❌ Fehler: " + err.message);
-} finally {
-  setCreateLoading(false);
-}
+  try {
+    const res = await fetch("/api/admin-create-product", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newProduct),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
+      console.error(data);
+      return;
+    }
+
+    setCreateMsg("✅ Produkt wurde erstellt.");
+    setNewProduct({ ...EMPTY_PRODUCT });
+    await loadProducts();
+  } catch (err) {
+    console.error(err);
+    setCreateMsg("❌ Fehler: " + err.message);
+  } finally {
+    setCreateLoading(false);
+  }
+}}
 
       const { error } = await supabase.from("products").insert([payload]);
 
