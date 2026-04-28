@@ -282,37 +282,36 @@ export default function AdminPage() {
   }, [products]);
 
   if (!isReady) {
-    return (
-      <div style={styles.page}>
-        <div style={styles.card}>Admin Dashboard wird geladen…</div>
-        </div>
-
+  return (
+    <div style={styles.page}>
+      <div style={styles.card}>Admin Dashboard wird geladen…</div>
+    </div>
   );
 }
 
-  if (!session || !isAllowed) return null;
+if (!session || !isAllowed) return null;
 
-  return (
-    <div style={styles.page}>
-      <header style={styles.header}>
-        <a href="/" style={styles.logo}>
-          Orbital-Noir Admin
+return (
+  <div style={styles.page}>
+    <header style={styles.header}>
+      <a href="/" style={styles.logo}>
+        Orbital-Noir Admin
+      </a>
+
+      <nav style={styles.nav}>
+        <a href="/" style={styles.link}>
+          Shop
         </a>
+        <a href="/deals" style={styles.link}>
+          Deals
+        </a>
+        <button type="button" onClick={logout} style={styles.logout}>
+          Logout
+        </button>
+      </nav>
+    </header>
 
-        <nav style={styles.nav}>
-          <a href="/" style={styles.link}>
-            Shop
-          </a>
-          <a href="/deals" style={styles.link}>
-            Deals
-          </a>
-          <button type="button" onClick={logout} style={styles.logout}>
-            Logout
-          </button>
-        </nav>
-      </header>
-
-      <main style={styles.shell}>
+    <main style={styles.shell}>
         <section style={styles.hero}>
           <h1 style={styles.title}>Admin Dashboard</h1>
           <p style={styles.text}>
