@@ -118,15 +118,20 @@ export default function AdminPage() {
   }, [adminEmail]);
 
   async function loadProducts() {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("products")
+    .select("*");
 
-    if (error) {
-      console.error("Load products error:", error);
-      return;
-    }
+  console.log("PRODUCTS DATA:", data);
+  console.log("PRODUCTS ERROR:", error);
+
+  if (error) {
+    alert("Fehler beim Laden: " + error.message);
+    return;
+  }
+
+  setProducts(data || []);
+}
 
     setProducts(data || []);
   }
