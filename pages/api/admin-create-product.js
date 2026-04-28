@@ -1,40 +1,49 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return res.status(405).json({ ok: false, error: "Nur POST erlaubt" });
   }
 
-  try {
-    const product = req.body;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!product.name || !product.price || !product.buy_link) {
-      return res.status(400).json({
-        ok: false,
-        error: "Name, Preis und Buy Link sind erforderlich",
-      });
-    }
+  if (!url) {
+    return res.status(500).json({ ok: false, error: "NEXT_PUBLIC_SUPABASE_URL fehlt" });
+  }
+
+  if (!serviceKey) {
+    return res.status(500).json({ ok: false, error: "SUPABASE_SERVICE_ROLE_KEY fehlt" });
+  }
+
+  const supabaseAdmin = createClient(url, serviceKey);
+
+  try {
+    const body = req.body || {};
 
     const payload = {
-      name: String(product.name).trim(),
-      price: Number(product.price || 0),
-      category: product.category || "other",
-      image: product.image || "/placeholder.png",
-      buy_link: product.buy_link,
-      description: product.description || "",
-      tag: product.tag || "",
-      merchant: product.merchant || "",
-      old_price: Number(product.old_price || 0),
-      commission_rate: Number(product.commission_rate || 0.03),
+      name: String(body.name || "").trim(),
+      price: Number(body.price || 0),
+      category: String(body.category || "other").trim(),
+      image: String(body.image || "/placeholder.png").trim(),
+      buy_link: String(body.buy_link || "").trim(),
+      description: String(body.description || "").trim(),
+      tag: String(body.tag || "").trim(),
+      merchant: String(body.merchant || "").trim(),
+      old_price: Number(body.old_price || 0),
+      commission_rate: Number(body.commission_rate || 0.03),
       clicks: 0,
       source: "manual",
       created_at: new Date().toISOString(),
     };
+
+    if (!payload.name || !payload.price || !payload.buy_link) {
+      return res.status(400).json({
+        ok: false,
+        error: "Name, Preis oder Buy Link fehlt",
+        payload,
+      });
+    }
 
     const { data, error } = await supabaseAdmin
       .from("products")
@@ -42,13 +51,22 @@ export default async function handler(req, res) {
       .select();
 
     if (error) {
-      console.error("Insert error:", error);
-      return res.status(500).json({ ok: false, error: error.message });
+      return res.status(500).json({
+        ok: false,
+        error: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        payload,
+      });
     }
 
-    return res.status(200).json({ ok: true, product: data?.[0] || null });
-  } catch (error) {
-    console.error("API crash:", error);
-    return res.status(500).json({ ok: false, error: error.message });
+    return res.status(200).json({ ok: true, data });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: err.message || "API Crash",
+      stack: err.stack,
+    });
   }
 }
