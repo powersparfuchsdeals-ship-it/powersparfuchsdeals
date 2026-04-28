@@ -528,7 +528,7 @@ export default function AdminPage() {
       <h2 style={styles.sectionTitle}>Alle Produkte</h2>
     </div>
   </div>
-
+  <div>Produkte: {products.length}</div>
   <div style={styles.tableWrap}>
     <table style={styles.table}>
       <thead>
@@ -594,6 +594,7 @@ export default function AdminPage() {
                   <th style={styles.th}>Preis</th>
                   <th style={styles.th}>Klicks</th>
                   <th style={styles.th}>Einnahmen</th>
+                  <th style={styles.th}>Aktion</th>
                 </tr>
               </thead>
 
