@@ -582,7 +582,7 @@ return (
     </table>
   </div>
 </section>
-                <section style={styles.card}>
+<section style={styles.card}>
           <div style={styles.sectionHead}>
             <div>
               <div style={styles.micro}>Produkte</div>
