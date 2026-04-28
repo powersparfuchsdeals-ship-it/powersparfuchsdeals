@@ -187,7 +187,31 @@ export default function AdminPage() {
     setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
     return;
   }
+   async function deleteProduct(id) {
+  if (!confirm("Wirklich löschen?")) return;
 
+  try {
+    const res = await fetch("/api/admin-delete-product", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      alert("❌ Fehler: " + (data.error || "Unbekannt"));
+      return;
+    }
+
+    await loadProducts();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Fehler beim Löschen");
+  }
+}
   setCreateLoading(true);
   setCreateMsg("Produkt wird erstellt...");
 
