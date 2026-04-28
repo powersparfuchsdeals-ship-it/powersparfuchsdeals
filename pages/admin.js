@@ -506,7 +506,19 @@ export default function AdminPage() {
           >
             {createLoading ? "Wird erstellt..." : "➕ Produkt erstellen"}
           </button>
-
+          <button
+  onClick={() => deleteProduct(product.id)}
+  style={{
+    background: "red",
+    color: "white",
+    border: "none",
+    padding: "6px 10px",
+    borderRadius: "6px",
+    cursor: "pointer",
+  }}
+>
+  Löschen
+</button>
           {createMsg ? <div style={styles.message}>{createMsg}</div> : null}
         </section>
 
