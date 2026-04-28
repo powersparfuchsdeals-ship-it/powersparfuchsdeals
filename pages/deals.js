@@ -1,8 +1,7 @@
-import DealCard from "../components/DealCard";
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { supabase } from "../lib/supabase";
-import ProductCard from "../components/ProductCard";
+import DealCard from "../components/DealCard";
 
 const CATEGORIES = [
   { value: "all", label: "Alle Deals" },
@@ -12,13 +11,15 @@ const CATEGORIES = [
   { value: "audio", label: "Audio" },
   { value: "gaming", label: "Gaming" },
   { value: "smarthome", label: "Smart Home" },
-  { value: "price-error", label: "Preisfehler" }
+  { value: "price-error", label: "Preisfehler" },
 ];
 
 function isGoodDeal(product) {
   const price = Number(product.price || 0);
-  const name = String(product.name || "").trim();
-  const buyLink = String(product.buy_link || product.link || "").trim();
+  const name = String(product.name || product.title || "").trim();
+  const buyLink = String(
+    product.buy_link || product.link || product.url || product.affiliate_url || ""
+  ).trim();
 
   return name.length >= 5 && price > 0 && price <= 5000 && !!buyLink;
 }
@@ -54,6 +55,23 @@ function getDealScore(product) {
   return score;
 }
 
+function normalizeDeal(p) {
+  return {
+    ...p,
+    title: p.title || p.name || "Unbekannter Deal",
+    image: p.image || p.thumbnail || "/placeholder.png",
+    price: Number(p.price || 0),
+    oldPrice: Number(p.oldPrice || p.old_price || p.original_price || 0),
+    affiliateUrl:
+      p.affiliateUrl ||
+      p.affiliate_url ||
+      p.buy_link ||
+      p.link ||
+      p.url ||
+      "",
+  };
+}
+
 export default function DealsPage() {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState("all");
@@ -78,6 +96,15 @@ export default function DealsPage() {
       .update({ clicks: Number(product.clicks || 0) + 1 })
       .eq("id", product.id);
 
+    await supabase.from("tracking_events").insert([
+      {
+        product_id: product.id,
+        deal_id: product.id,
+        type: "click",
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
     setProducts((prev) =>
       prev.map((item) =>
         item.id === product.id
@@ -87,10 +114,25 @@ export default function DealsPage() {
     );
   }
 
+  async function handleDealClick(deal) {
+    await trackClick(deal);
+
+    const url =
+      deal.affiliateUrl ||
+      deal.affiliate_url ||
+      deal.buy_link ||
+      deal.link ||
+      deal.url;
+
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }
+
   const ranked = useMemo(() => {
     return [...products]
       .filter(isGoodDeal)
-      .map((p) => ({ ...p, deal_score: getDealScore(p) }))
+      .map((p) => normalizeDeal({ ...p, deal_score: getDealScore(p) }))
       .sort((a, b) => b.deal_score - a.deal_score);
   }, [products]);
 
@@ -108,7 +150,7 @@ export default function DealsPage() {
 
       const matchesSearch =
         !q ||
-        [p.name, p.description, p.category, p.tag, p.merchant, p.source]
+        [p.name, p.title, p.description, p.category, p.tag, p.merchant, p.source]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(q));
 
@@ -138,9 +180,7 @@ export default function DealsPage() {
 
       <div style={styles.page}>
         <header style={styles.header}>
-          <a href="/" style={styles.logo}>
-            Orbital-Noir Deals
-          </a>
+          <a href="/" style={styles.logo}>Orbital-Noir Deals</a>
 
           <nav style={styles.nav}>
             <a href="#top-deals" style={styles.navLink}>Top Deals</a>
@@ -260,7 +300,7 @@ export default function DealsPage() {
             ) : (
               <div style={styles.grid}>
                 {topDeals.map((p) => (
-                  <ProductCard key={p.id} p={p} trackClick={trackClick} />
+                  <DealCard key={p.id} deal={p} onClick={handleDealClick} />
                 ))}
               </div>
             )}
@@ -280,7 +320,7 @@ export default function DealsPage() {
             ) : (
               <div style={styles.grid}>
                 {priceErrors.map((p) => (
-                  <ProductCard key={p.id} p={p} trackClick={trackClick} />
+                  <DealCard key={p.id} deal={p} onClick={handleDealClick} />
                 ))}
               </div>
             )}
@@ -335,7 +375,7 @@ export default function DealsPage() {
             ) : (
               <div style={styles.grid}>
                 {filtered.map((p) => (
-                  <ProductCard key={p.id} p={p} trackClick={trackClick} />
+                  <DealCard key={p.id} deal={p} onClick={handleDealClick} />
                 ))}
               </div>
             )}
@@ -367,7 +407,7 @@ export default function DealsPage() {
 const cardBase = {
   background: "rgba(255,255,255,0.9)",
   border: "1px solid rgba(255,255,255,0.65)",
-  boxShadow: "0 12px 40px rgba(0,0,0,0.08)"
+  boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
 };
 
 const styles = {
@@ -377,7 +417,7 @@ const styles = {
       "linear-gradient(180deg, #fff7c2 0%, #ffd166 35%, #e76f51 72%, #355070 100%)",
     color: "#111827",
     fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   header: {
     maxWidth: "1280px",
@@ -387,30 +427,30 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "18px",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
   },
   logo: {
     color: "#111827",
     textDecoration: "none",
     fontSize: "26px",
     fontWeight: 800,
-    letterSpacing: "-0.04em"
+    letterSpacing: "-0.04em",
   },
   nav: {
     display: "flex",
     gap: "18px",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
   },
   navLink: {
     color: "#111827",
     textDecoration: "none",
     fontWeight: 700,
-    fontSize: "15px"
+    fontSize: "15px",
   },
   shell: {
     maxWidth: "1280px",
     margin: "0 auto",
-    padding: "8px 16px 50px"
+    padding: "8px 16px 50px",
   },
   hero: {
     display: "grid",
@@ -420,7 +460,7 @@ const styles = {
     borderRadius: "28px",
     padding: "34px",
     backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)"
+    WebkitBackdropFilter: "blur(12px)",
   },
   label: {
     color: "#6b7280",
@@ -428,26 +468,26 @@ const styles = {
     textTransform: "uppercase",
     letterSpacing: "0.12em",
     fontWeight: 800,
-    marginBottom: "12px"
+    marginBottom: "12px",
   },
   title: {
     margin: 0,
     maxWidth: "780px",
     fontSize: "clamp(38px, 5vw, 72px)",
     lineHeight: 0.98,
-    letterSpacing: "-0.06em"
+    letterSpacing: "-0.06em",
   },
   text: {
     maxWidth: "720px",
     color: "#4b5563",
     fontSize: "18px",
-    lineHeight: 1.7
+    lineHeight: 1.7,
   },
   actions: {
     display: "flex",
     gap: "12px",
     flexWrap: "wrap",
-    marginTop: "22px"
+    marginTop: "22px",
   },
   primaryBtn: {
     display: "inline-flex",
@@ -459,7 +499,7 @@ const styles = {
     background: "#111827",
     color: "#fff",
     textDecoration: "none",
-    fontWeight: 800
+    fontWeight: 800,
   },
   secondaryBtn: {
     display: "inline-flex",
@@ -472,36 +512,36 @@ const styles = {
     color: "#111827",
     textDecoration: "none",
     fontWeight: 800,
-    border: "1px solid #d1d5db"
+    border: "1px solid #d1d5db",
   },
   affiliateNote: {
     marginTop: "18px",
     color: "#6b7280",
     fontSize: "13px",
-    lineHeight: 1.5
+    lineHeight: 1.5,
   },
   trustBox: {
     background: "rgba(255,255,255,0.82)",
     border: "1px solid rgba(17,24,39,0.08)",
     borderRadius: "22px",
-    padding: "22px"
+    padding: "22px",
   },
   trustTitle: {
     marginTop: 0,
     marginBottom: "10px",
-    color: "#111827"
+    color: "#111827",
   },
   trustList: {
     margin: 0,
     paddingLeft: "20px",
     color: "#374151",
-    lineHeight: 1.9
+    lineHeight: 1.9,
   },
   infoGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
     gap: "16px",
-    marginTop: "22px"
+    marginTop: "22px",
   },
   infoCard: {
     ...cardBase,
@@ -509,7 +549,7 @@ const styles = {
     padding: "20px",
     display: "flex",
     flexDirection: "column",
-    gap: "8px"
+    gap: "8px",
   },
   contentBox: {
     marginTop: "34px",
@@ -517,21 +557,21 @@ const styles = {
     borderRadius: "24px",
     padding: "26px",
     color: "#374151",
-    lineHeight: 1.75
+    lineHeight: 1.75,
   },
   contentTitle: {
     marginTop: 0,
     color: "#111827",
-    letterSpacing: "-0.03em"
+    letterSpacing: "-0.03em",
   },
   categoryBox: {
     marginTop: "34px",
     ...cardBase,
     borderRadius: "24px",
-    padding: "24px"
+    padding: "24px",
   },
   section: {
-    marginTop: "34px"
+    marginTop: "34px",
   },
   sectionHead: {
     display: "flex",
@@ -539,22 +579,22 @@ const styles = {
     alignItems: "end",
     gap: "16px",
     flexWrap: "wrap",
-    marginBottom: "16px"
+    marginBottom: "16px",
   },
   sectionTitle: {
     margin: 0,
     fontSize: "34px",
-    letterSpacing: "-0.04em"
+    letterSpacing: "-0.04em",
   },
   smallText: {
     color: "#374151",
-    margin: 0
+    margin: 0,
   },
   filterBar: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) 220px",
     gap: "12px",
-    marginBottom: "16px"
+    marginBottom: "16px",
   },
   searchInput: {
     width: "100%",
@@ -565,7 +605,7 @@ const styles = {
     fontSize: "14px",
     boxSizing: "border-box",
     background: "#ffffff",
-    color: "#111827"
+    color: "#111827",
   },
   select: {
     width: "100%",
@@ -576,13 +616,13 @@ const styles = {
     fontSize: "14px",
     boxSizing: "border-box",
     background: "#ffffff",
-    color: "#111827"
+    color: "#111827",
   },
   pills: {
     display: "flex",
     gap: "10px",
     flexWrap: "wrap",
-    marginBottom: "18px"
+    marginBottom: "18px",
   },
   pill: {
     minHeight: "38px",
@@ -592,7 +632,7 @@ const styles = {
     background: "rgba(255,255,255,0.9)",
     color: "#111827",
     cursor: "pointer",
-    fontWeight: 700
+    fontWeight: 700,
   },
   pillActive: {
     minHeight: "38px",
@@ -602,18 +642,18 @@ const styles = {
     background: "#111827",
     color: "#fff",
     cursor: "pointer",
-    fontWeight: 800
+    fontWeight: 800,
   },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: "18px"
+    gap: "18px",
   },
   emptyBox: {
     ...cardBase,
     borderRadius: "20px",
     padding: "22px",
-    color: "#4b5563"
+    color: "#4b5563",
   },
   footer: {
     display: "flex",
@@ -621,11 +661,11 @@ const styles = {
     gap: "10px",
     marginTop: "30px",
     color: "#111827",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
   },
   footerLink: {
     color: "#111827",
     textDecoration: "none",
-    fontWeight: 700
-  }
+    fontWeight: 700,
+  },
 };
