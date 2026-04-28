@@ -280,9 +280,12 @@ export default function AdminPage() {
     return (
       <div style={styles.page}>
         <div style={styles.card}>Admin Dashboard wird geladen…</div>
-      </div>
-    );
-  }
+        </div>
+</section>
+      </main>
+    </div>
+  );
+}
 
   if (!session || !isAllowed) return null;
 
