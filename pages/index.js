@@ -71,6 +71,7 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+
   const [gradientA, setGradientA] = useState(SUNSET_GRADIENTS[0]);
   const [gradientB, setGradientB] = useState(SUNSET_GRADIENTS[1]);
   const [showLayerA, setShowLayerA] = useState(true);
@@ -86,6 +87,7 @@ export default function Home() {
     loadTopDeals();
 
     const savedIndex = Number(localStorage.getItem("orbital-noir-sunset-index") || 0);
+
     if (
       Number.isFinite(savedIndex) &&
       savedIndex >= 0 &&
@@ -122,6 +124,7 @@ export default function Home() {
         const currentIndex = Number(
           localStorage.getItem("orbital-noir-sunset-index") || 0
         );
+
         const nextIndex = (currentIndex + 1) % SUNSET_GRADIENTS.length;
         const afterNextIndex = (nextIndex + 1) % SUNSET_GRADIENTS.length;
 
@@ -203,7 +206,7 @@ export default function Home() {
 
       const matchesSearch =
         !q ||
-        [p.name, p.description, p.category, p.import_query, p.tag]
+        [p.name, p.description, p.category, p.import_query, p.tag, p.merchant]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q));
 
@@ -240,6 +243,7 @@ export default function Home() {
             opacity: showLayerA ? 1 : 0
           }}
         />
+
         <div
           style={{
             ...styles.gradientLayer,
@@ -258,35 +262,25 @@ export default function Home() {
             </a>
 
             <div style={styles.navLinks}>
+              <a href="/deals" style={styles.topLink}>
+                Deals
+              </a>
+
               <a href="/preisfehler" style={styles.topLink}>
                 Preisfehler
               </a>
 
               {isAdmin ? (
-                <a href="/admin" style={styles.topLink}>
-                  Admin
-                </a>
-              ) : null}
-
-              {session ? (
                 <>
+                  <a href="/admin" style={styles.topLink}>
+                    Admin
+                  </a>
+
                   <button type="button" onClick={logout} style={styles.topButton}>
                     Logout
                   </button>
-                  <a href="/admin" style={styles.topLinkSecondary}>
-                    Konto
-                  </a>
                 </>
-              ) : (
-                <>
-                  <a href="/login" style={styles.topLink}>
-                    Login
-                  </a>
-                  <a href="/register" style={styles.topLink}>
-                    Register
-                  </a>
-                </>
-              )}
+              ) : null}
             </div>
           </div>
         </header>
@@ -298,7 +292,10 @@ export default function Home() {
                 <div style={styles.microLabel}>Filter</div>
                 <h2 style={styles.sectionTitle}>Produkte finden</h2>
               </div>
-              <p style={styles.sectionText}>Suche nach Kategorie, Produkt oder Schlagwort.</p>
+
+              <p style={styles.sectionText}>
+                Suche nach Kategorie, Produkt oder Schlagwort.
+              </p>
             </div>
 
             <div style={styles.filterBar}>
@@ -339,42 +336,44 @@ export default function Home() {
 
           <section style={styles.hero}>
             <div style={styles.heroPanel}>
-              <div style={styles.microLabel}>Orbital-Noir / Deals Engine 2.0</div>
-              <h1 style={styles.heroTitle}>Top Deals jetzt mit echter Tracking-Logik.</h1>
+              <div style={styles.microLabel}>Orbital-Noir / Deals Engine</div>
+
+              <h1 style={styles.heroTitle}>
+                Tech Deals, Preisfehler und starke Angebote.
+              </h1>
+
               <p style={styles.heroText}>
-                Produkte werden jetzt nicht nur nach statischen Klicks sortiert,
-                sondern zusätzlich nach echten Tracking-Events, Frische, Preis,
-                Featured-Boost und Preisfehler-Signal.
+                Entdecke aktuelle Technik-Angebote, Top Deals und Preisfehler.
+                Die Angebote werden nach Klicks, Frische, Preis und Deal-Signal sortiert.
               </p>
-              {isAdmin ? (
-  <>
-    <a href="/admin" style={styles.topLink}>
-      Admin
-    </a>
-    <button type="button" onClick={logout} style={styles.topButton}>
-      Logout
-    </button>
-  </>
-) : null}
-              
+
+              <div style={styles.heroActions}>
+                <a href="/deals" style={styles.ghostBtn}>
+                  🔥 Deals ansehen
+                </a>
+
+                <a href="/preisfehler" style={styles.ghostBtn}>
+                  Preisfehler
+                </a>
+              </div>
             </div>
 
             <div style={styles.heroPanel}>
               <div style={styles.frameTop}>
                 <span style={styles.statusDot} />
-                <span>Deals Engine 2.0 aktiv</span>
+                <span>Deals Engine aktiv</span>
               </div>
 
               <div style={styles.visualCore}>
                 <div style={styles.ringA} />
                 <div style={styles.ringB} />
                 <div style={styles.ringC} />
+
                 <div style={styles.coreCard}>
                   <div style={styles.coreKicker}>Ranking System</div>
-                  <div style={styles.coreTitle}>Clicks + Tracking + Freshness</div>
+                  <div style={styles.coreTitle}>Clicks + Freshness</div>
                   <div style={styles.coreText}>
-                    Das Ranking reagiert jetzt auf echtes Nutzerverhalten und ist
-                    deutlich näher an echter Conversion.
+                    Top Deals werden automatisch stärker gewichtet und nach Relevanz sortiert.
                   </div>
                 </div>
               </div>
@@ -391,6 +390,7 @@ export default function Home() {
               <div style={styles.microLabel}>Collection</div>
               <h2 style={styles.sectionTitle}>Aktuelle Produkte</h2>
             </div>
+
             <p style={styles.sectionText}>{sortedProducts.length} Produkte gefunden.</p>
           </section>
 
@@ -417,6 +417,10 @@ export default function Home() {
             <span style={styles.footerDot}>•</span>
             <a href="/datenschutz" style={styles.footerLink}>
               Datenschutz
+            </a>
+            <span style={styles.footerDot}>•</span>
+            <a href="/login" style={styles.footerLink}>
+              Admin Login
             </a>
           </footer>
         </main>
@@ -514,14 +518,6 @@ const styles = {
     color: "#111827",
     textDecoration: "none",
     fontSize: "18px",
-    fontWeight: 500,
-    lineHeight: 1.2
-  },
-
-  topLinkSecondary: {
-    color: "#6b7280",
-    textDecoration: "none",
-    fontSize: "15px",
     fontWeight: 500,
     lineHeight: 1.2
   },
@@ -702,7 +698,8 @@ const styles = {
     position: "relative",
     height: "320px",
     borderRadius: "22px",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(243,244,246,0.94))",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(243,244,246,0.94))",
     overflow: "hidden",
     border: "1px solid rgba(17,24,39,0.06)"
   },
