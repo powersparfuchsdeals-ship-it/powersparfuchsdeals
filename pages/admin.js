@@ -281,9 +281,7 @@ export default function AdminPage() {
       <div style={styles.page}>
         <div style={styles.card}>Admin Dashboard wird geladen…</div>
         </div>
-</section>
-      </main>
-    </div>
+
   );
 }
 
