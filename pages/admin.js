@@ -219,25 +219,7 @@ export default function AdminPage() {
  }
 }
 
-      const { error } = await supabase.from("products").insert([payload]);
-
-      if (error) {
-        console.error("Supabase insert error:", error);
-        setCreateMsg(`❌ Fehler: ${error.message}`);
-        return;
-      }
-
-      setCreateMsg("✅ Produkt wurde erstellt.");
-      setNewProduct({ ...EMPTY_PRODUCT });
-      await Promise.all([loadProducts(), loadTracking()]);
-    } catch (error) {
-      console.error("Create product error:", error);
-      setCreateMsg("❌ Produkt konnte nicht erstellt werden. Siehe Browser-Konsole.");
-    } finally {
-      setCreateLoading(false);
-    }
-  }
-
+      
   const stats = useMemo(() => {
     const totalProducts = products.length;
     const totalDbClicks = products.reduce(
