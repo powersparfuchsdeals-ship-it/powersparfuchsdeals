@@ -118,20 +118,18 @@ export default function AdminPage() {
   }, [adminEmail]);
 
   async function loadProducts() {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*");
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  console.log("PRODUCTS DATA:", data);
-  console.log("PRODUCTS ERROR:", error);
+    console.log("PRODUCTS DATA:", data);
+    console.log("PRODUCTS ERROR:", error);
 
-  if (error) {
-    alert("Fehler beim Laden: " + error.message);
-    return;
-  }
-
-  setProducts(data || []);
-}
+    if (error) {
+      alert("Fehler beim Laden: " + error.message);
+      return;
+    }
 
     setProducts(data || []);
   }
@@ -186,80 +184,84 @@ export default function AdminPage() {
   }
 
   async function createProduct() {
-  if (createLoading) return;
+    if (createLoading) return;
 
-  if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
-    setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
-    return;
-  }
-   async function deleteProduct(id) {
-  if (!confirm("Wirklich löschen?")) return;
-
-  try {
-    const res = await fetch("/api/admin-delete-product", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      alert("❌ Fehler: " + (data.error || "Unbekannt"));
+    if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
+      setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
       return;
     }
 
-    await loadProducts();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Fehler beim Löschen");
+    setCreateLoading(true);
+    setCreateMsg("Produkt wird erstellt...");
+
+    try {
+      const res = await fetch("/api/admin-create-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProduct),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        console.error("API Fehler:", data);
+        setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
+        return;
+      }
+
+      setCreateMsg("✅ Produkt wurde erstellt.");
+      setNewProduct({ ...EMPTY_PRODUCT });
+      await Promise.all([loadProducts(), loadTracking()]);
+    } catch (error) {
+      console.error("Create product error:", error);
+      setCreateMsg("❌ Produkt konnte nicht erstellt werden.");
+    } finally {
+      setCreateLoading(false);
+    }
   }
-}
-  setCreateLoading(true);
-  setCreateMsg("Produkt wird erstellt...");
 
-  try {
-  const res = await fetch("/api/admin-create-product", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(newProduct),
-  });
+  async function deleteProduct(id) {
+    if (!confirm("Wirklich löschen?")) return;
 
-  const data = await res.json();
+    try {
+      const res = await fetch("/api/admin-delete-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
 
-  if (!res.ok || !data.ok) {
-    console.error("API Fehler:", data);
-    setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
-    return;
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        alert("❌ Fehler: " + (data.error || "Unbekannt"));
+        return;
+      }
+
+      await Promise.all([loadProducts(), loadTracking()]);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Fehler beim Löschen");
+    }
   }
 
-  setCreateMsg("✅ Produkt wurde erstellt.");
-  setNewProduct({ ...EMPTY_PRODUCT });
-  await loadProducts();
-} catch (error) {
-  console.error("Create product error:", error);
-  setCreateMsg("❌ Produkt konnte nicht erstellt werden. Siehe Browser-Konsole.");
-} finally {
-  setCreateLoading(false);
- }
-}
-
-      
   const stats = useMemo(() => {
     const totalProducts = products.length;
+
     const totalDbClicks = products.reduce(
-      (sum, p) => sum + Number(p.clicks || 0),
+      (sum, product) => sum + Number(product.clicks || 0),
       0
     );
+
     const totalTrackingClicks = trackingEvents.filter(
-      (e) => e.type === "click"
+      (event) => event.type === "click"
     ).length;
+
     const estimatedRevenue = products.reduce(
-      (sum, p) => sum + getRevenue(p),
+      (sum, product) => sum + getRevenue(product),
       0
     );
 
@@ -271,163 +273,293 @@ export default function AdminPage() {
     };
   }, [products, trackingEvents]);
 
-  const topProducts = useMemo(() => {
-    return [...products]
-      .map((p) => ({
-        ...p,
-        estimatedRevenue: getRevenue(p),
-      }))
-      .sort((a, b) => Number(b.clicks || 0) - Number(a.clicks || 0))
-      .slice(0, 12);
-  }, [products]);
-
   if (!isReady) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.card}>Admin Dashboard wird geladen…</div>
+      </div>
+    );
+  }
+
+  if (!session || !isAllowed) return null;
+
   return (
     <div style={styles.page}>
-      <div style={styles.card}>Admin Dashboard wird geladen…</div>
-    </div>
-  );
-}
-
-if (!session || !isAllowed) return null;
-
-return (
-  <div style={styles.page}>
-    <header style={styles.header}>
-      <a href="/" style={styles.logo}>
-        Orbital-Noir Admin
-      </a>
-
-      <nav style={styles.nav}>
-        <a href="/" style={styles.link}>
-          Shop
+      <header style={styles.header}>
+        <a href="/" style={styles.logo}>
+          Orbital-Noir Admin
         </a>
-        <a href="/deals" style={styles.link}>
-          Deals
-        </a>
-        <button type="button" onClick={logout} style={styles.logout}>
-          Logout
-        </button>
-      </nav>
-    </header>
 
-    <main style={styles.shell}>
-  {/* HERO */}
-  <section style={styles.hero}>
-    <h1 style={styles.title}>Admin Dashboard</h1>
-    <p style={styles.text}>
-      Produkte, Imports, Tracking und manuelle Angebote.
-    </p>
-  </section>
+        <nav style={styles.nav}>
+          <a href="/" style={styles.link}>
+            Shop
+          </a>
+          <a href="/deals" style={styles.link}>
+            Deals
+          </a>
+          <button type="button" onClick={logout} style={styles.logout}>
+            Logout
+          </button>
+        </nav>
+      </header>
 
-  {/* STATS */}
-  <section style={styles.statsGrid}>
-    <div style={styles.statCard}>
-      <div style={styles.statLabel}>Produkte</div>
-      <div style={styles.statValue}>{stats.totalProducts}</div>
-    </div>
+      <main style={styles.shell}>
+        <section style={styles.hero}>
+          <h1 style={styles.title}>Admin Dashboard</h1>
+          <p style={styles.text}>
+            Produkte, Imports, Tracking und manuelle Angebote.
+          </p>
+        </section>
 
-    <div style={styles.statCard}>
-      <div style={styles.statLabel}>DB Klicks</div>
-      <div style={styles.statValue}>{stats.totalDbClicks}</div>
-    </div>
+        <section style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>Produkte</div>
+            <div style={styles.statValue}>{stats.totalProducts}</div>
+          </div>
 
-    <div style={styles.statCard}>
-      <div style={styles.statLabel}>Tracking Klicks</div>
-      <div style={styles.statValue}>{stats.totalTrackingClicks}</div>
-    </div>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>DB Klicks</div>
+            <div style={styles.statValue}>{stats.totalDbClicks}</div>
+          </div>
 
-    <div style={styles.statCard}>
-      <div style={styles.statLabel}>Geschätzt gesamt</div>
-      <div style={styles.statValue}>
-        {formatPrice(stats.estimatedRevenue)}
-      </div>
-    </div>
-  </section>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>Tracking Klicks</div>
+            <div style={styles.statValue}>{stats.totalTrackingClicks}</div>
+          </div>
 
-  {/* IMPORTS */}
-  <section style={styles.card}>
-    <div style={styles.sectionHead}>
-      <div>
-        <div style={styles.micro}>Imports</div>
-        <h2 style={styles.sectionTitle}>Cron & Import Aktionen</h2>
-      </div>
-    </div>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>Geschätzt gesamt</div>
+            <div style={styles.statValue}>
+              {formatPrice(stats.estimatedRevenue)}
+            </div>
+          </div>
+        </section>
 
-    <div style={styles.quickGrid}>
-      <button onClick={() => runImport("/api/cron/import-amazon")} style={styles.button}>
-        Amazon Import
-      </button>
+        <section style={styles.card}>
+          <div style={styles.sectionHead}>
+            <div>
+              <div style={styles.micro}>Imports</div>
+              <h2 style={styles.sectionTitle}>Cron & Import Aktionen</h2>
+            </div>
+          </div>
 
-      <button onClick={() => runImport("/api/admin/import-preisfehler")} style={styles.button}>
-        Preisfehler Import
-      </button>
-    </div>
-  </section>
+          <div style={styles.quickGrid}>
+            <button
+              type="button"
+              onClick={() => runImport("/api/cron/import-amazon")}
+              disabled={importLoading}
+              style={styles.button}
+            >
+              Amazon Import starten
+            </button>
 
-  {/* PRODUKTE */}
-  <section style={styles.card}>
-    <div style={styles.sectionHead}>
-      <div>
-        <div style={styles.micro}>Produkte</div>
-        <h2 style={styles.sectionTitle}>Alle Produkte</h2>
-      </div>
-    </div>
+            <button
+              type="button"
+              onClick={() => runImport("/api/admin/import-preisfehler")}
+              disabled={importLoading}
+              style={styles.button}
+            >
+              Preisfehler Import starten
+            </button>
 
-    <div style={styles.message}>
-      Produkte geladen: {products.length}
-    </div>
+            <button
+              type="button"
+              onClick={() => runImport("/api/admin/import-featured")}
+              disabled={importLoading}
+              style={styles.button}
+            >
+              Featured Import starten
+            </button>
 
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Produkt</th>
-            <th style={styles.th}>Händler</th>
-            <th style={styles.th}>Preis</th>
-            <th style={styles.th}>Klicks</th>
-            <th style={styles.th}>Einnahmen</th>
-            <th style={styles.th}>Aktion</th>
-          </tr>
-        </thead>
+            <button
+              type="button"
+              onClick={() => runImport("/api/admin/import-otto-awin")}
+              disabled={importLoading}
+              style={styles.button}
+            >
+              OTTO / Awin Import starten
+            </button>
+          </div>
 
-        <tbody>
-          {products.map((product) => (
-            <tr key={product.id}>
-              <td style={styles.td}>
-                {product.name || product.title || "Ohne Name"}
-              </td>
-              <td style={styles.td}>
-                {product.merchant || product.source || "-"}
-              </td>
-              <td style={styles.td}>{formatPrice(product.price)}</td>
-              <td style={styles.td}>{Number(product.clicks || 0)}</td>
-              <td style={styles.tdStrong}>
-                {formatPrice(getRevenue(product))}
-              </td>
-              <td style={styles.td}>
-                <button
-                  onClick={() => deleteProduct(product.id)}
-                  style={{
-                    background: "#dc2626",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    fontWeight: 800,
-                  }}
-                >
-                  Löschen
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </section>
-</main>
+          {importMessage ? <div style={styles.message}>{importMessage}</div> : null}
+
+          <div style={styles.importBox}>
+            <AdminImport />
+          </div>
+        </section>
+
+        <section style={styles.card}>
+          <div style={styles.sectionHead}>
+            <div>
+              <div style={styles.micro}>Manuell</div>
+              <h2 style={styles.sectionTitle}>Produkt hinzufügen</h2>
+            </div>
+          </div>
+
+          <div style={styles.formGrid}>
+            <input
+              placeholder="Produktname"
+              value={newProduct.name}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, name: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Preis (€)"
+              type="number"
+              value={newProduct.price}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, price: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Alter Preis (€)"
+              type="number"
+              value={newProduct.old_price}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, old_price: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Händler z.B. OTTO / Amazon"
+              value={newProduct.merchant}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, merchant: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Provision z.B. 0.03"
+              type="number"
+              step="0.01"
+              value={newProduct.commission_rate}
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  commission_rate: e.target.value,
+                })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Kategorie z.B. smartphone"
+              value={newProduct.category}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, category: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Bild URL"
+              value={newProduct.image}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, image: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Affiliate / Buy Link"
+              value={newProduct.buy_link}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, buy_link: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Tag z.B. featured / preisfehler"
+              value={newProduct.tag}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, tag: e.target.value })
+              }
+              style={styles.input}
+            />
+
+            <textarea
+              placeholder="Beschreibung"
+              value={newProduct.description}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, description: e.target.value })
+              }
+              style={styles.textarea}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={createProduct}
+            disabled={createLoading}
+            style={styles.button}
+          >
+            {createLoading ? "Wird erstellt..." : "➕ Produkt erstellen"}
+          </button>
+
+          {createMsg ? <div style={styles.message}>{createMsg}</div> : null}
+        </section>
+
+        <section style={styles.card}>
+          <div style={styles.sectionHead}>
+            <div>
+              <div style={styles.micro}>Produkte</div>
+              <h2 style={styles.sectionTitle}>Alle Produkte</h2>
+            </div>
+          </div>
+
+          <div style={styles.message}>Produkte geladen: {products.length}</div>
+
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Produkt</th>
+                  <th style={styles.th}>Händler</th>
+                  <th style={styles.th}>Preis</th>
+                  <th style={styles.th}>Klicks</th>
+                  <th style={styles.th}>Einnahmen</th>
+                  <th style={styles.th}>Aktion</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td style={styles.td}>
+                      {product.name || product.title || "Ohne Name"}
+                    </td>
+                    <td style={styles.td}>
+                      {product.merchant || product.source || "-"}
+                    </td>
+                    <td style={styles.td}>{formatPrice(product.price)}</td>
+                    <td style={styles.td}>{Number(product.clicks || 0)}</td>
+                    <td style={styles.tdStrong}>
+                      {formatPrice(getRevenue(product))}
+                    </td>
+                    <td style={styles.td}>
+                      <button
+                        type="button"
+                        onClick={() => deleteProduct(product.id)}
+                        style={styles.deleteButton}
+                      >
+                        Löschen
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
@@ -572,8 +704,18 @@ const styles = {
     cursor: "pointer",
     padding: "0 14px",
   },
+  deleteButton: {
+    background: "#dc2626",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 10px",
+    cursor: "pointer",
+    fontWeight: 800,
+  },
   message: {
     marginTop: 16,
+    marginBottom: 16,
     padding: "12px 14px",
     borderRadius: 12,
     background: "#f3f4f6",
