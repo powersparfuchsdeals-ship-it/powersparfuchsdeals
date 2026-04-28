@@ -564,7 +564,62 @@ export default function AdminPage() {
     </div>
   );
 }
+<section style={styles.card}>
+  <div style={styles.sectionHead}>
+    <div>
+      <div style={styles.micro}>Produkte</div>
+      <h2 style={styles.sectionTitle}>Alle Produkte</h2>
+    </div>
+  </div>
 
+  <div style={styles.tableWrap}>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={styles.th}>Produkt</th>
+          <th style={styles.th}>Händler</th>
+          <th style={styles.th}>Preis</th>
+          <th style={styles.th}>Klicks</th>
+          <th style={styles.th}>Einnahmen</th>
+          <th style={styles.th}>Aktion</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {products.map((product) => (
+          <tr key={product.id}>
+            <td style={styles.td}>{product.name}</td>
+            <td style={styles.td}>
+              {product.merchant || product.source || "-"}
+            </td>
+            <td style={styles.td}>{formatPrice(product.price)}</td>
+            <td style={styles.td}>{Number(product.clicks || 0)}</td>
+            <td style={styles.tdStrong}>
+              {formatPrice(getRevenue(product))}
+            </td>
+            <td style={styles.td}>
+              <button
+                type="button"
+                onClick={() => deleteProduct(product.id)}
+                style={{
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 10px",
+                  cursor: "pointer",
+                  fontWeight: 800,
+                }}
+              >
+                Löschen
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
 const styles = {
   page: {
     minHeight: "100vh",
