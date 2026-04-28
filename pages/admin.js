@@ -216,6 +216,7 @@ export default function AdminPage() {
   setCreateMsg("❌ Produkt konnte nicht erstellt werden. Siehe Browser-Konsole.");
 } finally {
   setCreateLoading(false);
+ }
 }
 
       const { error } = await supabase.from("products").insert([payload]);
