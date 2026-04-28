@@ -1,3 +1,4 @@
+import DealCard from "../components/DealCard";
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { supabase } from "../lib/supabase";
