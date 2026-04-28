@@ -591,10 +591,6 @@ export default function AdminPage() {
     </div>
   </div>
 
-  <div style={styles.message}>
-    Produkte geladen: {products.length}
-  </div>
-
   <div style={styles.tableWrap}>
     <table style={styles.table}>
       <thead>
@@ -611,11 +607,17 @@ export default function AdminPage() {
       <tbody>
         {products.map((product) => (
           <tr key={product.id}>
-            <td style={styles.td}>{product.name || product.title || "Ohne Name"}</td>
-            <td style={styles.td}>{product.merchant || product.source || "-"}</td>
+            <td style={styles.td}>
+              {product.name || product.title || "Ohne Name"}
+            </td>
+            <td style={styles.td}>
+              {product.merchant || product.source || "-"}
+            </td>
             <td style={styles.td}>{formatPrice(product.price)}</td>
             <td style={styles.td}>{Number(product.clicks || 0)}</td>
-            <td style={styles.tdStrong}>{formatPrice(getRevenue(product))}</td>
+            <td style={styles.tdStrong}>
+              {formatPrice(getRevenue(product))}
+            </td>
             <td style={styles.td}>
               <button
                 type="button"
