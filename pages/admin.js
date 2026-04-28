@@ -229,10 +229,57 @@ export default function AdminPage() {
   }
 
   async function createProduct() {
-    if (!newProduct.name.trim() || !newProduct.price) {
-      setCreateMsg("❌ Name & Preis erforderlich.");
+  if (createLoading) return;
+
+  if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
+    setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
+    return;
+  }
+
+  setCreateLoading(true);
+  setCreateMsg("Produkt wird erstellt...");
+
+  try {
+    const payload = {
+      name: newProduct.name.trim(),
+      price: Number(newProduct.price || 0),
+      category: newProduct.category.trim() || "other",
+      image: newProduct.image.trim() || "/placeholder.png",
+      buy_link: newProduct.buy_link.trim(),
+      link: newProduct.buy_link.trim(),
+      description: newProduct.description.trim(),
+      tag: newProduct.tag.trim(),
+      merchant: newProduct.merchant.trim(),
+      old_price: Number(newProduct.old_price || 0),
+      commission_rate: Number(newProduct.commission_rate || 0.03),
+      clicks: 0,
+      source: "manual",
+      created_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from("products")
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error("Supabase Insert Fehler:", error);
+      setCreateMsg(`❌ Fehler: ${error.message}`);
       return;
     }
+
+    console.log("Produkt erstellt:", data);
+
+    setCreateMsg("✅ Produkt wurde erstellt.");
+    setNewProduct({ ...EMPTY_PRODUCT });
+    await loadProducts();
+  } catch (error) {
+    console.error("Create Product Fehler:", error);
+    setCreateMsg("❌ Produkt konnte nicht erstellt werden. Siehe Konsole.");
+  } finally {
+    setCreateLoading(false);
+  }
+}
 
     setCreateLoading(true);
     setCreateMsg("Produkt wird erstellt...");
