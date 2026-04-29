@@ -553,8 +553,25 @@ export default function AdminPage() {
                         Löschen
                       </button>
                     </td>
-                  </tr>
-                ))}
+                  <td style={styles.td}>
+                  <button
+                  type="button"
+                  onClick={() => alert("Bearbeiten kommt als nächstes")}
+                  style={styles.editButton}
+                  >
+                  Bearbeiten
+                  </button>
+
+                  <button
+				  type="button"
+                  onClick={() => deleteProduct(product.id)}
+                  style={styles.deleteButton}
+                  >
+                  Löschen
+                  </button>
+                  </td>
+				  </tr>
+				))}
               </tbody>
             </table>
           </div>
@@ -574,6 +591,16 @@ const styles = {
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     paddingBottom: 48,
   },
+    editButton: {
+  background: "#111827",
+  color: "#fff",
+  border: "none",
+  borderRadius: 8,
+  padding: "8px 10px",
+  cursor: "pointer",
+  fontWeight: 800,
+  marginRight: 8,
+},
   header: {
     maxWidth: 1280,
     margin: "0 auto",
