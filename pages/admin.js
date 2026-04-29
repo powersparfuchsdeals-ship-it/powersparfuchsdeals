@@ -531,48 +531,44 @@ export default function AdminPage() {
               </thead>
 
               <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td style={styles.td}>
-                      {product.name || product.title || "Ohne Name"}
-                    </td>
-                    <td style={styles.td}>
-                      {product.merchant || product.source || "-"}
-                    </td>
-                    <td style={styles.td}>{formatPrice(product.price)}</td>
-                    <td style={styles.td}>{Number(product.clicks || 0)}</td>
-                    <td style={styles.tdStrong}>
-                      {formatPrice(getRevenue(product))}
-                    </td>
-                    <td style={styles.td}>
-                      <button
-                        type="button"
-                        onClick={() => deleteProduct(product.id)}
-                        style={styles.deleteButton}
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  <td style={styles.td}>
-                  <button
-                  type="button"
-                  onClick={() => alert("Bearbeiten kommt als nächstes")}
-                  style={styles.editButton}
-                  >
-                  Bearbeiten
-                  </button>
+            {products.map((product) => (
+            <tr key={product.id}>
+            <td style={styles.td}>
+            {product.name || product.title || "Ohne Name"}
+            </td>
 
-                  <button
-				  type="button"
-                  onClick={() => deleteProduct(product.id)}
-                  style={styles.deleteButton}
-                  >
-                  Löschen
-                  </button>
-                  </td>
-				  </tr>
-				))}
-              </tbody>
+            <td style={styles.td}>
+           {product.merchant || product.source || "-"}
+          </td>
+
+          <td style={styles.td}>{formatPrice(product.price)}</td>
+
+          <td style={styles.td}>{Number(product.clicks || 0)}</td>
+
+         <td style={styles.tdStrong}>
+         {formatPrice(getRevenue(product))}
+         </td>
+
+         <td style={styles.td}>
+         <button
+          type="button"
+          onClick={() => alert("Bearbeiten kommt als nächstes")}
+          style={styles.editButton}
+         >
+          Bearbeiten
+         </button>
+
+         <button
+          type="button"
+          onClick={() => deleteProduct(product.id)}
+          style={styles.deleteButton}
+        >
+                Löschen
+               </button>
+              </td>
+             </tr>
+            ))}
+             </tbody>
             </table>
           </div>
         </section>
@@ -601,6 +597,17 @@ const styles = {
   fontWeight: 800,
   marginRight: 8,
 },
+
+deleteButton: {
+  background: "#dc2626",
+  color: "#fff",
+  border: "none",
+  borderRadius: 8,
+  padding: "8px 10px",
+  cursor: "pointer",
+  fontWeight: 800,
+},
+
   header: {
     maxWidth: 1280,
     margin: "0 auto",
