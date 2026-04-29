@@ -25,7 +25,11 @@ export default async function handler(req, res) {
       name: String(body.name || "").trim(),
       price: Number(body.price || 0),
       category: String(body.category || "other").trim(),
-      image: String(body.image || "/placeholder.png").trim(),
+      image: body.image?.trim()
+    ? body.image.trim()
+    : body.buy_link?.includes("amazon")
+    ? `https://images.amazon.com/images/P/${body.buy_link.split("/dp/")[1]?.split("?")[0]}.jpg`
+    : "/placeholder.png",
       buy_link: String(body.buy_link || "").trim(),
       description: String(body.description || "").trim(),
       tag: String(body.tag || "").trim(),
