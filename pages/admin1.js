@@ -118,23 +118,23 @@ export default function AdminPage() {
   }, [adminEmail]);
 
   async function loadProducts() {
-  const { data, error } = await supabase
-    .from("products")
-    .select("*");
+  try {
+    const res = await fetch("/api/admin-products");
+    const data = await res.json();
 
-  console.log("PRODUCTS DATA:", data);
-  console.log("PRODUCTS ERROR:", error);
+    if (!res.ok || !data.ok) {
+      alert("Fehler beim Laden: " + (data.error || "Unbekannt"));
+      setProducts([]);
+      return;
+    }
 
-  if (error) {
-    alert("Fehler beim Laden: " + error.message);
-    return;
+    setProducts(data.products || []);
+  } catch (err) {
+    console.error(err);
+    alert("API Fehler beim Laden der Produkte.");
+    setProducts([]);
   }
-
-  setProducts(data || []);
-}
-
-    setProducts(data || []);
-  }
+ }
 
   async function loadTracking() {
     const { data, error } = await supabase
@@ -186,80 +186,84 @@ export default function AdminPage() {
   }
 
   async function createProduct() {
-  if (createLoading) return;
+    if (createLoading) return;
 
-  if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
-    setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
-    return;
-  }
-   async function deleteProduct(id) {
-  if (!confirm("Wirklich löschen?")) return;
-
-  try {
-    const res = await fetch("/api/admin-delete-product", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      alert("❌ Fehler: " + (data.error || "Unbekannt"));
+    if (!newProduct.name.trim() || !newProduct.price || !newProduct.buy_link.trim()) {
+      setCreateMsg("❌ Name, Preis und Affiliate / Buy Link sind erforderlich.");
       return;
     }
 
-    await loadProducts();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Fehler beim Löschen");
+    setCreateLoading(true);
+    setCreateMsg("Produkt wird erstellt...");
+
+    try {
+      const res = await fetch("/api/admin-create-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProduct),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        console.error("API Fehler:", data);
+        setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
+        return;
+      }
+
+      setCreateMsg("✅ Produkt wurde erstellt.");
+      setNewProduct({ ...EMPTY_PRODUCT });
+      await Promise.all([loadProducts(), loadTracking()]);
+    } catch (error) {
+      console.error("Create product error:", error);
+      setCreateMsg("❌ Produkt konnte nicht erstellt werden.");
+    } finally {
+      setCreateLoading(false);
+    }
   }
-}
-  setCreateLoading(true);
-  setCreateMsg("Produkt wird erstellt...");
 
-  try {
-  const res = await fetch("/api/admin-create-product", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(newProduct),
-  });
+  async function deleteProduct(id) {
+    if (!confirm("Wirklich löschen?")) return;
 
-  const data = await res.json();
+    try {
+      const res = await fetch("/api/admin-delete-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
 
-  if (!res.ok || !data.ok) {
-    console.error("API Fehler:", data);
-    setCreateMsg("❌ Fehler: " + (data.error || "Unbekannt"));
-    return;
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        alert("❌ Fehler: " + (data.error || "Unbekannt"));
+        return;
+      }
+
+      await Promise.all([loadProducts(), loadTracking()]);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Fehler beim Löschen");
+    }
   }
 
-  setCreateMsg("✅ Produkt wurde erstellt.");
-  setNewProduct({ ...EMPTY_PRODUCT });
-  await loadProducts();
-} catch (error) {
-  console.error("Create product error:", error);
-  setCreateMsg("❌ Produkt konnte nicht erstellt werden. Siehe Browser-Konsole.");
-} finally {
-  setCreateLoading(false);
- }
-}
-
-      
   const stats = useMemo(() => {
     const totalProducts = products.length;
+
     const totalDbClicks = products.reduce(
-      (sum, p) => sum + Number(p.clicks || 0),
+      (sum, product) => sum + Number(product.clicks || 0),
       0
     );
+
     const totalTrackingClicks = trackingEvents.filter(
-      (e) => e.type === "click"
+      (event) => event.type === "click"
     ).length;
+
     const estimatedRevenue = products.reduce(
-      (sum, p) => sum + getRevenue(p),
+      (sum, product) => sum + getRevenue(product),
       0
     );
 
@@ -271,24 +275,13 @@ export default function AdminPage() {
     };
   }, [products, trackingEvents]);
 
-  const topProducts = useMemo(() => {
-    return [...products]
-      .map((p) => ({
-        ...p,
-        estimatedRevenue: getRevenue(p),
-      }))
-      .sort((a, b) => Number(b.clicks || 0) - Number(a.clicks || 0))
-      .slice(0, 12);
-  }, [products]);
-
   if (!isReady) {
     return (
       <div style={styles.page}>
         <div style={styles.card}>Admin Dashboard wird geladen…</div>
-        </div>
-
-  );
-}
+      </div>
+    );
+  }
 
   if (!session || !isAllowed) return null;
 
@@ -512,21 +505,10 @@ export default function AdminPage() {
           >
             {createLoading ? "Wird erstellt..." : "➕ Produkt erstellen"}
           </button>
-          <button
-  onClick={() => deleteProduct(product.id)}
-  style={{
-    background: "red",
-    color: "white",
-    border: "none",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  }}
->
-  Löschen
-</button>
+
           {createMsg ? <div style={styles.message}>{createMsg}</div> : null}
         </section>
+
         <section style={styles.card}>
   <div style={styles.sectionHead}>
     <div>
@@ -534,7 +516,11 @@ export default function AdminPage() {
       <h2 style={styles.sectionTitle}>Alle Produkte</h2>
     </div>
   </div>
-  <div>Produkte: {products.length}</div>
+
+  <div style={styles.message}>
+    Produkte geladen: {products.length}
+  </div>
+
   <div style={styles.tableWrap}>
     <table style={styles.table}>
       <thead>
@@ -549,99 +535,42 @@ export default function AdminPage() {
       </thead>
 
       <tbody>
-        {products.map((product) => (
-          <tr key={product.id}>
-            <td style={styles.td}>{product.name}</td>
-            <td style={styles.td}>
-              {product.merchant || product.source || "-"}
-            </td>
-            <td style={styles.td}>{formatPrice(product.price)}</td>
-            <td style={styles.td}>{Number(product.clicks || 0)}</td>
-            <td style={styles.tdStrong}>
-              {formatPrice(getRevenue(product))}
-            </td>
-            <td style={styles.td}>
-              <button
-                type="button"
-                onClick={() => deleteProduct(product.id)}
-                style={{
-                  background: "#dc2626",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "8px 10px",
-                  cursor: "pointer",
-                  fontWeight: 800,
-                }}
-              >
-                Löschen
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
+  {products.map((product) => (
+    <tr key={product.id}>
+      <td style={styles.td}>{product.name || "Ohne Name"}</td>
+      <td style={styles.td}>{product.merchant || "-"}</td>
+      <td style={styles.td}>{formatPrice(product.price)}</td>
+      <td style={styles.td}>{Number(product.clicks || 0)}</td>
+      <td style={styles.tdStrong}>
+        {formatPrice(getRevenue(product))}
+      </td>
+      <td style={styles.td}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => deleteProduct(product.id)}
+            style={styles.deleteButton}
+          >
+            Löschen
+          </button>
+
+          <button
+            onClick={() => alert("Edit kommt")}
+            style={styles.editButton}
+          >
+            Bearbeiten
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
     </table>
   </div>
 </section>
-                <section style={styles.card}>
-          <div style={styles.sectionHead}>
-            <div>
-              <div style={styles.micro}>Produkte</div>
-              <h2 style={styles.sectionTitle}>Alle Produkte</h2>
-            </div>
-          </div>
-
-          <div style={styles.message}>Produkte geladen: {products.length}</div>
-
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Produkt</th>
-                  <th style={styles.th}>Händler</th>
-                  <th style={styles.th}>Preis</th>
-                  <th style={styles.th}>Klicks</th>
-                  <th style={styles.th}>Einnahmen</th>
-                  <th style={styles.th}>Aktion</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td style={styles.td}>{product.name || product.title || "Ohne Name"}</td>
-                    <td style={styles.td}>{product.merchant || product.source || "-"}</td>
-                    <td style={styles.td}>{formatPrice(product.price)}</td>
-                    <td style={styles.td}>{Number(product.clicks || 0)}</td>
-                    <td style={styles.tdStrong}>{formatPrice(getRevenue(product))}</td>
-                    <td style={styles.td}>
-                      <button
-                        type="button"
-                        onClick={() => deleteProduct(product.id)}
-                        style={{
-                          background: "#dc2626",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "8px",
-                          padding: "8px 10px",
-                          cursor: "pointer",
-                          fontWeight: 800,
-                        }}
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </main>
     </div>
   );
 }
-
 const styles = {
   page: {
     minHeight: "100vh",
@@ -652,6 +581,27 @@ const styles = {
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     paddingBottom: 48,
   },
+    editButton: {
+  background: "#111827",
+  color: "#fff",
+  border: "none",
+  borderRadius: 8,
+  padding: "8px 10px",
+  cursor: "pointer",
+  fontWeight: 800,
+  marginRight: 8,
+},
+
+deleteButton: {
+  background: "#dc2626",
+  color: "#fff",
+  border: "none",
+  borderRadius: 8,
+  padding: "8px 10px",
+  cursor: "pointer",
+  fontWeight: 800,
+},
+
   header: {
     maxWidth: 1280,
     margin: "0 auto",
@@ -782,8 +732,18 @@ const styles = {
     cursor: "pointer",
     padding: "0 14px",
   },
+  deleteButton: {
+    background: "#dc2626",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 10px",
+    cursor: "pointer",
+    fontWeight: 800,
+  },
   message: {
     marginTop: 16,
+    marginBottom: 16,
     padding: "12px 14px",
     borderRadius: 12,
     background: "#f3f4f6",
@@ -846,3 +806,7 @@ const styles = {
     borderBottom: "1px solid #f3f4f6",
     color: "#111827",
     fontSize: 14,
+    fontWeight: 800,
+    verticalAlign: "top",
+  },
+};
