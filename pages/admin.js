@@ -186,9 +186,11 @@ export default function AdminPage() {
           <AmazonAutoTransport onProductAdded={loadProducts} />
         </div>
 
-        <div style={styles.section}>
-          <OttoImport onProductAdded={loadProducts} />
-        </div>
+        {/*
+<div style={styles.section}>
+  <OttoImport onProductAdded={loadProducts} />
+</div>
+*/}
       </div>
 
       <div style={styles.card}>
