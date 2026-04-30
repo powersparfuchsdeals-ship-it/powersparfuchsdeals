@@ -118,21 +118,23 @@ export default function AdminPage() {
   }, [adminEmail]);
 
   async function loadProducts() {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false });
+  try {
+    const res = await fetch("/api/admin-products");
+    const data = await res.json();
 
-    console.log("PRODUCTS DATA:", data);
-    console.log("PRODUCTS ERROR:", error);
-
-    if (error) {
-      alert("Fehler beim Laden: " + error.message);
+    if (!res.ok || !data.ok) {
+      alert("Fehler beim Laden: " + (data.error || "Unbekannt"));
+      setProducts([]);
       return;
     }
 
-    setProducts(data || []);
+    setProducts(data.products || []);
+  } catch (err) {
+    console.error(err);
+    alert("API Fehler beim Laden der Produkte.");
+    setProducts([]);
   }
+
 
   async function loadTracking() {
     const { data, error } = await supabase
