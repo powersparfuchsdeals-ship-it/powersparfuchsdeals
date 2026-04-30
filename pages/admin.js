@@ -510,65 +510,63 @@ export default function AdminPage() {
         </section>
 
         <section style={styles.card}>
-          <div style={styles.sectionHead}>
-            <div>
-              <div style={styles.micro}>Produkte</div>
-              <h2 style={styles.sectionTitle}>Alle Produkte</h2>
-            </div>
-          </div>
-
-          <div style={styles.message}>Produkte geladen: {products.length}</div>
-
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Produkt</th>
-                  <th style={styles.th}>Händler</th>
-                  <th style={styles.th}>Preis</th>
-                  <th style={styles.th}>Klicks</th>
-                  <th style={styles.th}>Einnahmen</th>
-                  <th style={styles.th}>Aktion</th>
-                </tr>
-              </thead>
-
-              <tbody>
-          {products.map((product) => (
-          <tr key={product.id}>
-          <td style={styles.td}>{product.name || product.title || "Ohne Name"}</td>
-          <td style={styles.td}>{product.merchant || product.source || "-"}</td>
-          <td style={styles.td}>{formatPrice(product.price)}</td>
-          <td style={styles.td}>{Number(product.clicks || 0)}</td>
-          <td style={styles.tdStrong}>{formatPrice(getRevenue(product))}</td>
-          <td style={styles.td}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => alert("Edit kommt")}
-            style={styles.editButton}
-          >
-            Bearbeiten
-          </button>
-
-          <button
-            type="button"
-            onClick={() => deleteProduct(product.id)}
-            style={styles.deleteButton}
-          >
-            Löschen
-          </button>
-        </div>
-      </td>
-    </tr>
-  ))}
-</tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+  <div style={styles.sectionHead}>
+    <div>
+      <div style={styles.micro}>Produkte</div>
+      <h2 style={styles.sectionTitle}>Alle Produkte</h2>
     </div>
-  );
-}
+  </div>
+
+  <div style={styles.message}>
+    Produkte geladen: {products.length}
+  </div>
+
+  <div style={styles.tableWrap}>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={styles.th}>Produkt</th>
+          <th style={styles.th}>Händler</th>
+          <th style={styles.th}>Preis</th>
+          <th style={styles.th}>Klicks</th>
+          <th style={styles.th}>Einnahmen</th>
+          <th style={styles.th}>Aktion</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {products.map((product) => (
+          <tr key={product.id}>
+            <td style={styles.td}>{product.name || "Ohne Name"}</td>
+            <td style={styles.td}>{product.merchant || "-"}</td>
+            <td style={styles.td}>{formatPrice(product.price)}</td>
+            <td style={styles.td}>{Number(product.clicks || 0)}</td>
+            <td style={styles.tdStrong}>
+              {formatPrice(getRevenue(product))}
+            </td>
+            <td style={styles.td}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => deleteProduct(product.id)}
+                  style={styles.deleteButton}
+                >
+                  Löschen
+                </button>
+
+                <button
+                  onClick={() => alert("Edit kommt")}
+                  style={styles.editButton}
+                >
+                  Bearbeiten
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
 
 const styles = {
   page: {
