@@ -533,44 +533,35 @@ export default function AdminPage() {
               </thead>
 
               <tbody>
-            {products.map((product) => (
-            <tr key={product.id}>
-            <td style={styles.td}>
-            {product.name || product.title || "Ohne Name"}
-            </td>
-
-            <td style={styles.td}>
-           {product.merchant || product.source || "-"}
-          </td>
-
+          {products.map((product) => (
+          <tr key={product.id}>
+          <td style={styles.td}>{product.name || product.title || "Ohne Name"}</td>
+          <td style={styles.td}>{product.merchant || product.source || "-"}</td>
           <td style={styles.td}>{formatPrice(product.price)}</td>
-
           <td style={styles.td}>{Number(product.clicks || 0)}</td>
+          <td style={styles.tdStrong}>{formatPrice(getRevenue(product))}</td>
+          <td style={styles.td}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => alert("Edit kommt")}
+            style={styles.editButton}
+          >
+            Bearbeiten
+          </button>
 
-         <td style={styles.tdStrong}>
-         {formatPrice(getRevenue(product))}
-         </td>
-
-         <td style={styles.td}>
-         <button
-          type="button"
-          onClick={() => alert("Bearbeiten kommt als nächstes")}
-          style={styles.editButton}
-         >
-          Bearbeiten
-         </button>
-
-         <button
-          type="button"
-          onClick={() => deleteProduct(product.id)}
-          style={styles.deleteButton}
-        >
-                Löschen
-               </button>
-              </td>
-             </tr>
-            ))}
-             </tbody>
+          <button
+            type="button"
+            onClick={() => deleteProduct(product.id)}
+            style={styles.deleteButton}
+          >
+            Löschen
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
             </table>
           </div>
         </section>
