@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminImport from "../components/AdminImport";
 import AmazonAutoTransport from "../components/AmazonAutoTransport";
-import OttoImport from "../components/OttoImport";
+// import OttoImport from "../components/OttoImport";
 
 function formatPrice(value) {
   const n = Number(value || 0);
