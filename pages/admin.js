@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import AmazonAutoTransport from "../components/AmazonAutoTransport";
 
 function formatPrice(value) {
   const n = Number(value || 0);
@@ -75,10 +76,14 @@ export default function AdminPage() {
   }
 
   return (
+    <div style={{ marginBottom: "30px" }}>
+  <AmazonAutoTransport onProductAdded={loadProducts} />
+</div>
+    
     <div style={styles.page}>
       <h1 style={styles.title}>Admin</h1>
-
-      <div style={styles.card}>
+          
+    <div style={styles.card}>
         <div>Produkte: {stats.totalProducts}</div>
         <div>Umsatz: {formatPrice(stats.estimatedRevenue)}</div>
       </div>
