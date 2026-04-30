@@ -567,7 +567,10 @@ export default function AdminPage() {
     </table>
   </div>
 </section>
-
+      </main>
+    </div>
+  );
+}
 const styles = {
   page: {
     minHeight: "100vh",
