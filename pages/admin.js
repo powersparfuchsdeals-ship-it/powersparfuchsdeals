@@ -535,35 +535,35 @@ export default function AdminPage() {
       </thead>
 
       <tbody>
-        {products.map((product) => (
-          <tr key={product.id}>
-            <td style={styles.td}>{product.name || "Ohne Name"}</td>
-            <td style={styles.td}>{product.merchant || "-"}</td>
-            <td style={styles.td}>{formatPrice(product.price)}</td>
-            <td style={styles.td}>{Number(product.clicks || 0)}</td>
-            <td style={styles.tdStrong}>
-              {formatPrice(getRevenue(product))}
-            </td>
-            <td style={styles.td}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => deleteProduct(product.id)}
-                  style={styles.deleteButton}
-                >
-                  Löschen
-                </button>
+  {products.map((product) => (
+    <tr key={product.id}>
+      <td style={styles.td}>{product.name || "Ohne Name"}</td>
+      <td style={styles.td}>{product.merchant || "-"}</td>
+      <td style={styles.td}>{formatPrice(product.price)}</td>
+      <td style={styles.td}>{Number(product.clicks || 0)}</td>
+      <td style={styles.tdStrong}>
+        {formatPrice(getRevenue(product))}
+      </td>
+      <td style={styles.td}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => deleteProduct(product.id)}
+            style={styles.deleteButton}
+          >
+            Löschen
+          </button>
 
-                <button
-                  onClick={() => alert("Edit kommt")}
-                  style={styles.editButton}
-                >
-                  Bearbeiten
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
+          <button
+            onClick={() => alert("Edit kommt")}
+            style={styles.editButton}
+          >
+            Bearbeiten
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
     </table>
   </div>
 </section>
