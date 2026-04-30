@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabase";
 import AmazonAutoTransport from "../components/AmazonAutoTransport";
 
 function formatPrice(value) {
@@ -37,9 +36,7 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/admin-delete-product", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
 
@@ -64,10 +61,7 @@ export default function AdminPage() {
   const stats = useMemo(() => {
     return {
       totalProducts: products.length,
-      estimatedRevenue: products.reduce(
-        (sum, p) => sum + getRevenue(p),
-        0
-      ),
+      estimatedRevenue: products.reduce((sum, p) => sum + getRevenue(p), 0),
     };
   }, [products]);
 
@@ -76,14 +70,14 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ marginBottom: "30px" }}>
-  <AmazonAutoTransport onProductAdded={loadProducts} />
-</div>
-    
     <div style={styles.page}>
       <h1 style={styles.title}>Admin</h1>
-          
-    <div style={styles.card}>
+
+      <div style={{ marginBottom: "30px" }}>
+        <AmazonAutoTransport onProductAdded={loadProducts} />
+      </div>
+
+      <div style={styles.card}>
         <div>Produkte: {stats.totalProducts}</div>
         <div>Umsatz: {formatPrice(stats.estimatedRevenue)}</div>
       </div>
@@ -105,7 +99,7 @@ export default function AdminPage() {
           <tbody>
             {products.map((p) => (
               <tr key={p.id}>
-                <td>{p.name}</td>
+                <td>{p.title || p.name}</td>
                 <td>{formatPrice(p.price)}</td>
                 <td>{p.clicks || 0}</td>
                 <td>{formatPrice(getRevenue(p))}</td>
