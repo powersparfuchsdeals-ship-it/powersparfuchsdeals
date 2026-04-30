@@ -134,7 +134,27 @@ export default function AdminPage() {
     alert("API Fehler beim Laden der Produkte.");
     setProducts([]);
   }
+}  
+    async function loadProducts() {
+  try {
+    const res = await fetch("/api/admin-products");
+    const data = await res.json();
 
+    if (!res.ok || !data.ok) {
+      alert("Fehler beim Laden: " + (data.error || "Unbekannt"));
+      setProducts([]);
+      return;
+    }
+
+    setProducts(data.products || []);
+  } catch (err) {
+    console.error(err);
+    alert("API Fehler beim Laden der Produkte.");
+    setProducts([]);
+  }
+
+
+  async function loadTracking() {
 
   async function loadTracking() {
     const { data, error } = await supabase
