@@ -47,13 +47,13 @@ export default function AutoFullPage() {
           <h3>Jetzt Preis prüfen</h3>
 
           <a
-            href={affiliateLink}
-            target="_blank"
-            rel="nofollow sponsored"
-            style={styles.button}
-          >
-            Jetzt bei AutoFull ansehen
-          </a>
+          href={affiliateLink}
+          target="_blank"
+          rel="nofollow sponsored noopener noreferrer"
+          style={styles.button}
+       >
+          Jetzt bei AutoFull ansehen
+        </a>>
         </div>
 
         <h2>Fazit</h2>
