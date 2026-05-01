@@ -54,7 +54,7 @@ export default function AutoFullPage() {
        >
           Jetzt bei AutoFull ansehen
         </a>>
-        </div>
+      </div>
 
         <h2>Fazit</h2>
         <p style={styles.text}>
