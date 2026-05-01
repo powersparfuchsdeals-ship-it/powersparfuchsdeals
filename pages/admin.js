@@ -12,7 +12,7 @@ function getRevenue(product) {
   const commissionRate = Number(product.commission_rate || 0.03);
   return price * clicks * commissionRate;
 }
-const PASSWORD = "Peugoet@1405"; // ändern!
+const PASSWORD = "test1405"; // ändern!
 
 export default function AdminPage() {
   const [access, setAccess] = useState(false);
