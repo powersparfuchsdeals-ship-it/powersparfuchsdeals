@@ -407,10 +407,7 @@ export default function AdminPage() {
                       )}
 
                    <button
-  onClick={() => {
-    alert("Klick erkannt");
-    editProduct(p);
-  }}
+                     onClick={() => editProduct(p)}
   style={styles.edit}
 >
   Bearbeiten
