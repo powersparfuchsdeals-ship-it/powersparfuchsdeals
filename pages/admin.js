@@ -306,11 +306,12 @@ export default function AdminPage() {
             <option value="other">Andere</option>
           </select>
 
-          <button onClick={createProduct} disabled={saving} style={styles.save}>
+            <button onClick={createProduct} disabled={saving} style={styles.save}>
             {saving ? "Speichert..." : "Produkt hinzufügen"}
           </button>
         </div>
-          
+
+        <div style={styles.card}>
           <AmazonAutoTransport onProductAdded={loadProducts} />
         </div>
       </div>
