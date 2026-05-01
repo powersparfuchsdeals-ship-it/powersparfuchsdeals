@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       .from("products")
       .insert([
         {
-          title,
+          name: title,
           price: price ? Number(price) : null,
           image: image || null,
           url,
