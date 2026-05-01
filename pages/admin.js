@@ -50,58 +50,58 @@ export default function AdminPage() {
   }
 
   async function createProduct() {
-    if (!newProduct.title.trim()) {
-      alert("Titel fehlt");
-      return;
-    }
-
-    if (!newProduct.url.trim()) {
-      alert("Produktlink fehlt");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const res = await fetch("/api/admin-add-product", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: newProduct.title,
-          price: newProduct.price,
-          image: newProduct.image,
-          url: newProduct.url,
-          category: newProduct.category || "allgemein",
-          source: newProduct.source || "manual",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.ok) {
-        alert(data.error || "Fehler beim Erstellen");
-        return;
-      }
-
-      setNewProduct({
-        title: "",
-        price: "",
-        image: "",
-        url: "",
-        category: "",
-        source: "manual",
-      });
-
-      await loadProducts();
-    } catch (err) {
-      console.error(err);
-      alert("Fehler beim Erstellen");
-    } finally {
-      setSaving(false);
-    }
+  if (!newProduct.title.trim()) {
+    alert("Titel fehlt");
+    return;
   }
+
+  if (!newProduct.url.trim()) {
+    alert("Produktlink fehlt");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/admin-add-products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: newProduct.title,
+        price: newProduct.price,
+        image: newProduct.image,
+        url: newProduct.url,
+        category: newProduct.category || "allgemein",
+        source: newProduct.source || "manual",
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      alert(data.error || "Fehler beim Erstellen");
+      return;
+    }
+
+    alert("Produkt erfolgreich erstellt ✅");
+
+    // Reset Formular
+    setNewProduct({
+      title: "",
+      price: "",
+      image: "",
+      url: "",
+      category: "",
+      source: "manual",
+    });
+
+    // Produkte neu laden
+    loadProducts();
+  } catch (err) {
+    console.error(err);
+    alert("Server Fehler");
+  }
+}
 
   async function deleteProduct(id) {
     if (!confirm("Wirklich löschen?")) return;
