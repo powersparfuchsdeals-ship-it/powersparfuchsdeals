@@ -290,21 +290,14 @@ export default function AdminPage() {
             style={styles.input}
           />
 
-          <select
-            value={newProduct.source}
-            onChange={(e) =>
-              setNewProduct({ ...newProduct, source: e.target.value })
-            }
-            style={styles.input}
-          >
-            <option value="manual">Manuell</option>
-            <option value="amazon">Amazon</option>
-            <option value="mediamarkt">MediaMarkt</option>
-            <option value="saturn">Saturn</option>
-            <option value="otto">OTTO</option>
-            <option value="ebay">eBay</option>
-            <option value="other">Andere</option>
-          </select>
+          <input
+  placeholder="Anbieter, z.B. autofull, mediamarkt, saturn"
+  value={newProduct.source}
+  onChange={(e) =>
+    setNewProduct({ ...newProduct, source: e.target.value })
+  }
+  style={styles.input}
+/>
 
             <button onClick={createProduct} disabled={saving} style={styles.save}>
             {saving ? "Speichert..." : "Produkt hinzufügen"}
