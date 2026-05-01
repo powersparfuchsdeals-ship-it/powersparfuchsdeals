@@ -7,7 +7,10 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return res.status(405).json({
+      ok: false,
+      error: "Method not allowed",
+    });
   }
 
   try {
@@ -27,7 +30,7 @@ export default async function handler(req, res) {
           name: title,
           price: price ? Number(price) : null,
           image: image || null,
-          url,
+          buy_link: url,
           category: category || "allgemein",
           source: source || "manual",
           clicks: 0,
