@@ -12,7 +12,38 @@ function getRevenue(product) {
   const commissionRate = Number(product.commission_rate || 0.03);
   return price * clicks * commissionRate;
 }
+const PASSWORD = "Peugoet@1405"; // ändern!
 
+export default function AdminPage() {
+  const [access, setAccess] = useState(false);
+  const [input, setInput] = useState("");
+
+  if (!access) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>Admin Login</h2>
+
+        <input
+          type="password"
+          placeholder="Passwort"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
+
+        <button
+          onClick={() => {
+            if (input === PASSWORD) {
+              setAccess(true);
+            } else {
+              alert("Falsch");
+            }
+          }}
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
 export default function AdminPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
