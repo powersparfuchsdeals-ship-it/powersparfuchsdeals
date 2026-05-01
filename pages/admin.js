@@ -494,7 +494,18 @@ export default function AdminPage() {
             />
 
             <label style={styles.label}>Anbieter</label>
-            <select
+<input
+  value={editingProduct.source}
+  onChange={(e) =>
+    setEditingProduct({
+      ...editingProduct,
+      source: e.target.value,
+    })
+  }
+  placeholder="z.B. autofull, amazon, mediamarkt"
+  style={styles.input}
+/>
+            
               value={editingProduct.source}
   onChange={(e) =>
     setEditingProduct({
