@@ -240,7 +240,11 @@ export default function AdminPage() {
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>Admin Dashboard</h1>
-
+      {editingProduct && (
+  <div style={{ background: "yellow", padding: 10, marginBottom: 10 }}>
+    EDIT MODUS AKTIV: {editingProduct.title}
+  </div>
+)}
       <div style={styles.grid}>
         <div style={styles.card}>
           <h2>Produkt manuell hinzufügen</h2>
