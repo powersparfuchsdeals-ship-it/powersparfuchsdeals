@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import AdminImport from "../components/AdminImport";
 import AmazonAutoTransport from "../components/AmazonAutoTransport";
-// import OttoImport from "../components/OttoImport";
 
 function formatPrice(value) {
   const n = Number(value || 0);
@@ -23,8 +21,17 @@ export default function AdminPage() {
   const [categoryFilter, setCategoryFilter] = useState("alle");
   const [sortBy, setSortBy] = useState("clicks");
 
-  const [editingProduct, setEditingProduct] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  const [newProduct, setNewProduct] = useState({
+    title: "",
+    price: "",
+    image: "",
+    url: "",
+    category: "",
+    source: "manual",
+  });
 
   async function loadProducts() {
     try {
@@ -39,6 +46,60 @@ export default function AdminPage() {
       setProducts([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function createProduct() {
+    if (!newProduct.title.trim()) {
+      alert("Titel fehlt");
+      return;
+    }
+
+    if (!newProduct.url.trim()) {
+      alert("Produktlink fehlt");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/admin-add-product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newProduct.title,
+          price: newProduct.price,
+          image: newProduct.image,
+          url: newProduct.url,
+          category: newProduct.category || "allgemein",
+          source: newProduct.source || "manual",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        alert(data.error || "Fehler beim Erstellen");
+        return;
+      }
+
+      setNewProduct({
+        title: "",
+        price: "",
+        image: "",
+        url: "",
+        category: "",
+        source: "manual",
+      });
+
+      await loadProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Fehler beim Erstellen");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -75,9 +136,9 @@ export default function AdminPage() {
       price: product.price || "",
       image: product.image || "",
       url: product.url || "",
-      asin: product.asin || "",
-      source: product.source || "",
       category: product.category || "",
+      source: product.source || "manual",
+      asin: product.asin || "",
     });
   }
 
@@ -119,8 +180,8 @@ export default function AdminPage() {
   const stats = useMemo(() => {
     return {
       totalProducts: products.length,
-      estimatedRevenue: products.reduce((sum, p) => sum + getRevenue(p), 0),
       totalClicks: products.reduce((sum, p) => sum + Number(p.clicks || 0), 0),
+      estimatedRevenue: products.reduce((sum, p) => sum + getRevenue(p), 0),
     };
   }, [products]);
 
@@ -134,8 +195,11 @@ export default function AdminPage() {
     return products.filter((p) => {
       const title = (p.title || p.name || "").toLowerCase();
       const category = p.category || "allgemein";
+      const source = p.source || "";
 
-      const matchesSearch = title.includes(search.toLowerCase());
+      const text = `${title} ${category} ${source}`.toLowerCase();
+
+      const matchesSearch = text.includes(search.toLowerCase());
       const matchesCategory =
         categoryFilter === "alle" || category === categoryFilter;
 
@@ -178,19 +242,78 @@ export default function AdminPage() {
       <h1 style={styles.title}>Admin Dashboard</h1>
 
       <div style={styles.grid}>
-        <div style={styles.section}>
-          <AdminImport onProductAdded={loadProducts} />
+        <div style={styles.card}>
+          <h2>Produkt manuell hinzufügen</h2>
+
+          <input
+            placeholder="Titel"
+            value={newProduct.title}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, title: e.target.value })
+            }
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Preis, z.B. 29.99"
+            value={newProduct.price}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, price: e.target.value })
+            }
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Bild URL"
+            value={newProduct.image}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, image: e.target.value })
+            }
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Produktlink / Affiliate-Link"
+            value={newProduct.url}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, url: e.target.value })
+            }
+            style={styles.input}
+          />
+
+          <input
+            placeholder="Kategorie, z.B. Gaming, Technik, Haushalt"
+            value={newProduct.category}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, category: e.target.value })
+            }
+            style={styles.input}
+          />
+
+          <select
+            value={newProduct.source}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, source: e.target.value })
+            }
+            style={styles.input}
+          >
+            <option value="manual">Manuell</option>
+            <option value="amazon">Amazon</option>
+            <option value="mediamarkt">MediaMarkt</option>
+            <option value="saturn">Saturn</option>
+            <option value="otto">OTTO</option>
+            <option value="ebay">eBay</option>
+            <option value="other">Andere</option>
+          </select>
+
+          <button onClick={createProduct} disabled={saving} style={styles.save}>
+            {saving ? "Speichert..." : "Produkt hinzufügen"}
+          </button>
         </div>
 
-        <div style={styles.section}>
+        <div style={styles.card}>
           <AmazonAutoTransport onProductAdded={loadProducts} />
         </div>
-
-        {/*
-<div style={styles.section}>
-  <OttoImport onProductAdded={loadProducts} />
-</div>
-*/}
       </div>
 
       <div style={styles.card}>
@@ -205,7 +328,7 @@ export default function AdminPage() {
 
         <div style={styles.filters}>
           <input
-            placeholder="Produkte suchen..."
+            placeholder="Suche nach Titel, Kategorie oder Anbieter..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={styles.input}
@@ -248,7 +371,7 @@ export default function AdminPage() {
                   <th style={styles.th}>Klicks</th>
                   <th style={styles.th}>Einnahmen</th>
                   <th style={styles.th}>Kategorie</th>
-                  <th style={styles.th}>Quelle</th>
+                  <th style={styles.th}>Anbieter</th>
                   <th style={styles.th}>Aktion</th>
                 </tr>
               </thead>
@@ -281,7 +404,7 @@ export default function AdminPage() {
                             onClick={() => navigator.clipboard.writeText(p.url)}
                             style={styles.copy}
                           >
-                            Kopieren
+                            Link kopieren
                           </button>
                         </>
                       )}
@@ -373,7 +496,28 @@ export default function AdminPage() {
               style={styles.input}
             />
 
-            <label style={styles.label}>ASIN</label>
+            <label style={styles.label}>Anbieter</label>
+            <select
+              value={editingProduct.source}
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct,
+                  source: e.target.value,
+                })
+              }
+              style={styles.input}
+            >
+              <option value="manual">Manuell</option>
+              <option value="amazon">Amazon</option>
+              <option value="amazon_auto">Amazon Auto</option>
+              <option value="mediamarkt">MediaMarkt</option>
+              <option value="saturn">Saturn</option>
+              <option value="otto">OTTO</option>
+              <option value="ebay">eBay</option>
+              <option value="other">Andere</option>
+            </select>
+
+            <label style={styles.label}>ASIN nur bei Amazon</label>
             <input
               value={editingProduct.asin}
               onChange={(e) =>
@@ -421,12 +565,9 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
     gap: 20,
     marginBottom: 20,
-  },
-  section: {
-    minWidth: 0,
   },
   card: {
     background: "#fff",
@@ -447,6 +588,7 @@ const styles = {
     border: "1px solid #ccc",
     borderRadius: 6,
     boxSizing: "border-box",
+    marginBottom: 10,
   },
   tableWrap: {
     overflowX: "auto",
