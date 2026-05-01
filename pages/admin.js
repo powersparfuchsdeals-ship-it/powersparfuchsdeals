@@ -492,13 +492,13 @@ export default function AdminPage() {
             <label style={styles.label}>Anbieter</label>
             <select
               value={editingProduct.source}
-              onChange={(e) =>
-                setEditingProduct({
-                  ...editingProduct,
-                  source: e.target.value,
-                })
-              }
-              style={styles.input}
+  onChange={(e) =>
+    setEditingProduct({
+      ...editingProduct,
+      source: e.target.value,
+    })
+  }
+  style={styles.input}
             >
               <option value="manual">Manuell</option>
               <option value="amazon">Amazon</option>
