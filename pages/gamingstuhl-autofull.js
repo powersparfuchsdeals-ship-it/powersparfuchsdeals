@@ -24,6 +24,11 @@ export default function AutoFullPage() {
           Stabilität und sind besonders für längere Gaming-Sessions geeignet.
         </p>
 
+        <p style={{ marginTop: 10, fontSize: 14 }}>
+      ✔ Direkt beim Hersteller kaufen<br />
+      ✔ 3 Jahre Garantie<br />
+      ✔ Kostenloser Versand (je nach Angebot)
+    </p>    
         <img
           src="https://www.autofull.eu/cdn/shop/files/auto-full-chair.jpg"
           alt="AutoFull Gamingstuhl"
