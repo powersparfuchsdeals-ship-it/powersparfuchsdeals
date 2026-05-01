@@ -53,7 +53,7 @@ export default function AutoFullPage() {
           style={styles.button}
        >
           Jetzt bei AutoFull ansehen
-        </a>>
+        </a>
       </div>
 
         <h2>Fazit</h2>
