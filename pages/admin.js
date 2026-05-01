@@ -427,7 +427,7 @@ export default function AdminPage() {
         )}
       </div>
 
-      {false && (
+      {editingProduct && (
         <div style={styles.modal}>
           <div style={styles.modalBox}>
             <h2>Produkt bearbeiten</h2>
