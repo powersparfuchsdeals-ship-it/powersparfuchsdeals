@@ -402,12 +402,15 @@ export default function AdminPage() {
                         </>
                       )}
 
-                      <button
-                        onClick={() => editProduct(p)}
-                        style={styles.edit}
-                      >
-                        Bearbeiten
-                      </button>
+                   <button
+  onClick={() => {
+    alert("Klick erkannt");
+    editProduct(p);
+  }}
+  style={styles.edit}
+>
+  Bearbeiten
+</button>
 
                       <button
                         onClick={() => deleteProduct(p.id)}
