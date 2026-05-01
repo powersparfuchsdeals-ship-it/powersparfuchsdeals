@@ -49,7 +49,7 @@ export default function AutoFullPage() {
         </ul>
 
         <div style={styles.box}>
-          <h3>Jetzt Preis prüfen</h3>
+          <h3>🔥 Aktuellen Preis bei AutoFull prüfen</h3>
 
           <a
           href={affiliateLink}
