@@ -135,7 +135,7 @@ export default function AdminPage() {
       title: product.title || product.name || "",
       price: product.price || "",
       image: product.image || "",
-      url: product.url || "",
+      url: product.buy_link || product.url || "",
       category: product.category || "",
       source: product.source || "manual",
       asin: product.asin || "",
