@@ -1,7 +1,7 @@
 import Head from "next/head";
 
 export default function AutoFullPage() {
-  const affiliateLink = "DEIN_AWIN_LINK_HIER";
+  const affiliateLink = "https://tidd.ly/48CsSYm";
 
   return (
     <>
