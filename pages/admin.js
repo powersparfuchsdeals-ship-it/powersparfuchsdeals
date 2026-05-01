@@ -506,19 +506,7 @@ export default function AdminPage() {
            style={styles.input}
           />
             
-           <input
-  value={editingProduct.source}
-  onChange={(e) =>
-    setEditingProduct({
-      ...editingProduct,
-      source: e.target.value,
-    })
-  }
-  placeholder="z.B. autofull, amazon, mediamarkt"
-  style={styles.input}
-/>   
-
-            <label style={styles.label}>ASIN nur bei Amazon</label>
+              <label style={styles.label}>ASIN nur bei Amazon</label>
             <input
               value={editingProduct.asin}
               onChange={(e) =>
