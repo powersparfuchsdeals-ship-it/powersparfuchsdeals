@@ -12,39 +12,11 @@ function getRevenue(product) {
   const commissionRate = Number(product.commission_rate || 0.03);
   return price * clicks * commissionRate;
 }
-const PASSWORD = "test1405"; // ändern!
 
-export default function AdminPage() {
+  export default function AdminPage() {
+  const PASSWORD = "test1405";
   const [access, setAccess] = useState(false);
   const [input, setInput] = useState("");
-
-  if (!access) {
-    return (
-      <div style={{ padding: 20 }}>
-        <h2>Admin Login</h2>
-
-        <input
-          type="password"
-          placeholder="Passwort"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-
-        <button
-          onClick={() => {
-            if (input === PASSWORD) {
-              setAccess(true);
-            } else {
-              alert("Falsch");
-            }
-          }}
-        >
-          Login
-        </button>
-      </div>
-    );
-  }
-export default function AdminPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -240,7 +212,35 @@ export default function AdminPage() {
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
+    // 🔒 LOGIN CHECK
+if (!access) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Admin Login</h2>
 
+      <input
+        type="password"
+        placeholder="Passwort"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        style={styles.input}
+      />
+
+      <button
+        onClick={() => {
+          if (input === PASSWORD) {
+            setAccess(true);
+          } else {
+            alert("Falsch");
+          }
+        }}
+        style={styles.save}
+      >
+        Login
+      </button>
+    </div>
+  );
+}
     if (sortBy === "clicks") {
       list.sort((a, b) => Number(b.clicks || 0) - Number(a.clicks || 0));
     }
