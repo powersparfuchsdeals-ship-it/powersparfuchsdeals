@@ -155,6 +155,7 @@ function getRevenue(product) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-admin-password": PASSWORD,
         },
         body: JSON.stringify(editingProduct),
       });
