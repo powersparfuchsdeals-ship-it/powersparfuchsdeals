@@ -13,12 +13,14 @@ function getRevenue(product) {
   return price * clicks * commissionRate;
 }
 
-  export default function AdminPage() {
+export default function AdminPage() {
   const PASSWORD = "test1405";
+
   const [access, setAccess] = useState(false);
   const [input, setInput] = useState("");
+
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("alle");
@@ -40,8 +42,19 @@ function getRevenue(product) {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/admin-products");
+      const res = await fetch("/api/admin-products", {
+        headers: {
+          "x-admin-password": PASSWORD,
+        },
+      });
+
       const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        alert(data.error || "Produkte konnten nicht geladen werden");
+        setProducts([]);
+        return;
+      }
 
       setProducts(data.products || []);
     } catch (err) {
@@ -53,58 +66,52 @@ function getRevenue(product) {
   }
 
   async function createProduct() {
-  if (!newProduct.title.trim()) {
-    alert("Titel fehlt");
-    return;
-  }
-
-  if (!newProduct.url.trim()) {
-    alert("Produktlink fehlt");
-    return;
-  }
-
-  try {
-    const res = await fetch("/api/admin-add-products", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: newProduct.title,
-        price: newProduct.price,
-        image: newProduct.image,
-        url: newProduct.url,
-        category: newProduct.category || "allgemein",
-        source: newProduct.source || "manual",
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      alert(data.error || "Fehler beim Erstellen");
+    if (!newProduct.title.trim()) {
+      alert("Titel fehlt");
       return;
     }
 
-    alert("Produkt erfolgreich erstellt ✅");
+    if (!newProduct.url.trim()) {
+      alert("Produktlink fehlt");
+      return;
+    }
 
-    // Reset Formular
-    setNewProduct({
-      title: "",
-      price: "",
-      image: "",
-      url: "",
-      category: "",
-      source: "manual",
-    });
+    setSaving(true);
 
-    // Produkte neu laden
-    loadProducts();
-  } catch (err) {
-    console.error(err);
-    alert("Server Fehler");
+    try {
+      const res = await fetch("/api/admin-add-products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": PASSWORD,
+        },
+        body: JSON.stringify(newProduct),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        alert(data.error || "Fehler beim Erstellen");
+        return;
+      }
+
+      setNewProduct({
+        title: "",
+        price: "",
+        image: "",
+        url: "",
+        category: "",
+        source: "manual",
+      });
+
+      await loadProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Server Fehler");
+    } finally {
+      setSaving(false);
+    }
   }
-}
 
   async function deleteProduct(id) {
     if (!confirm("Wirklich löschen?")) return;
@@ -114,6 +121,7 @@ function getRevenue(product) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-admin-password": PASSWORD,
         },
         body: JSON.stringify({ id }),
       });
@@ -178,8 +186,10 @@ function getRevenue(product) {
   }
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (access) {
+      loadProducts();
+    }
+  }, [access]);
 
   const stats = useMemo(() => {
     return {
@@ -200,20 +210,18 @@ function getRevenue(product) {
       const title = (p.title || p.name || "").toLowerCase();
       const category = p.category || "allgemein";
       const source = p.source || "";
-
       const text = `${title} ${category} ${source}`.toLowerCase();
 
-      const matchesSearch = text.includes(search.toLowerCase());
-      const matchesCategory =
-        categoryFilter === "alle" || category === categoryFilter;
-
-      return matchesSearch && matchesCategory;
+      return (
+        text.includes(search.toLowerCase()) &&
+        (categoryFilter === "alle" || category === categoryFilter)
+      );
     });
   }, [products, search, categoryFilter]);
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
-    
+
     if (sortBy === "clicks") {
       list.sort((a, b) => Number(b.clicks || 0) - Number(a.clicks || 0));
     }
@@ -236,34 +244,36 @@ function getRevenue(product) {
 
     return list;
   }, [filteredProducts, sortBy]);
+
   if (!access) {
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Admin Login</h2>
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>Admin Login</h2>
 
-      <input
-        type="password"
-        placeholder="Passwort"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        style={styles.input}
-      />
+        <input
+          type="password"
+          placeholder="Passwort"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          style={styles.input}
+        />
 
-      <button
-        onClick={() => {
-          if (input === PASSWORD) {
-            setAccess(true);
-          } else {
-            alert("Falsch");
-          }
-        }}
-        style={styles.save}
-      >
-        Login
-      </button>
-    </div>
-  );
-}   
+        <button
+          onClick={() => {
+            if (input === PASSWORD) {
+              setAccess(true);
+            } else {
+              alert("Falsch");
+            }
+          }}
+          style={styles.save}
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div style={{ padding: 20 }}>Lädt...</div>;
   }
@@ -271,11 +281,7 @@ function getRevenue(product) {
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>Admin Dashboard</h1>
-      {editingProduct && (
-  <div style={{ background: "yellow", padding: 10, marginBottom: 10 }}>
-    EDIT MODUS AKTIV: {editingProduct.title}
-  </div>
-)}
+
       <div style={styles.grid}>
         <div style={styles.card}>
           <h2>Produkt manuell hinzufügen</h2>
@@ -317,7 +323,7 @@ function getRevenue(product) {
           />
 
           <input
-            placeholder="Kategorie, z.B. Gaming, Technik, Haushalt"
+            placeholder="Kategorie, z.B. Gaming, Technik"
             value={newProduct.category}
             onChange={(e) =>
               setNewProduct({ ...newProduct, category: e.target.value })
@@ -326,15 +332,15 @@ function getRevenue(product) {
           />
 
           <input
-  placeholder="Anbieter, z.B. autofull, mediamarkt, saturn"
-  value={newProduct.source}
-  onChange={(e) =>
-    setNewProduct({ ...newProduct, source: e.target.value })
-  }
-  style={styles.input}
-/>
+            placeholder="Anbieter, z.B. autofull, amazon"
+            value={newProduct.source}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, source: e.target.value })
+            }
+            style={styles.input}
+          />
 
-            <button onClick={createProduct} disabled={saving} style={styles.save}>
+          <button onClick={createProduct} disabled={saving} style={styles.save}>
             {saving ? "Speichert..." : "Produkt hinzufügen"}
           </button>
         </div>
@@ -405,54 +411,60 @@ function getRevenue(product) {
               </thead>
 
               <tbody>
-                {sortedProducts.map((p) => (
-                  <tr key={p.id}>
-                    <td style={styles.td}>
-                      <strong>{p.title || p.name || "Ohne Titel"}</strong>
-                      {p.asin && <div style={styles.small}>ASIN: {p.asin}</div>}
-                    </td>
+                {sortedProducts.map((p) => {
+                  const link = p.buy_link || p.url;
 
-                    <td style={styles.td}>{formatPrice(p.price)}</td>
-                    <td style={styles.td}>{p.clicks || 0}</td>
-                    <td style={styles.td}>{formatPrice(getRevenue(p))}</td>
-                    <td style={styles.td}>{p.category || "allgemein"}</td>
-                    <td style={styles.td}>{p.source || "manual"}</td>
+                  return (
+                    <tr key={p.id}>
+                      <td style={styles.td}>
+                        <strong>{p.title || p.name || "Ohne Titel"}</strong>
+                        {p.asin && (
+                          <div style={styles.small}>ASIN: {p.asin}</div>
+                        )}
+                      </td>
 
-                    <td style={styles.td}>
-                      {p.url && (
-                        <>
-                          <button
-                            onClick={() => window.open(p.url, "_blank")}
-                            style={styles.view}
-                          >
-                            Öffnen
-                          </button>
+                      <td style={styles.td}>{formatPrice(p.price)}</td>
+                      <td style={styles.td}>{p.clicks || 0}</td>
+                      <td style={styles.td}>{formatPrice(getRevenue(p))}</td>
+                      <td style={styles.td}>{p.category || "allgemein"}</td>
+                      <td style={styles.td}>{p.source || "manual"}</td>
 
-                          <button
-                            onClick={() => navigator.clipboard.writeText(p.url)}
-                            style={styles.copy}
-                          >
-                            Link kopieren
-                          </button>
-                        </>
-                      )}
+                      <td style={styles.td}>
+                        {link && (
+                          <>
+                            <button
+                              onClick={() => window.open(link, "_blank")}
+                              style={styles.view}
+                            >
+                              Öffnen
+                            </button>
 
-                   <button
-                     onClick={() => editProduct(p)}
-  style={styles.edit}
->
-  Bearbeiten
-</button>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(link)}
+                              style={styles.copy}
+                            >
+                              Link kopieren
+                            </button>
+                          </>
+                        )}
 
-                      <button
-                        onClick={() => deleteProduct(p.id)}
-                        style={styles.delete}
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        <button
+                          onClick={() => editProduct(p)}
+                          style={styles.edit}
+                        >
+                          Bearbeiten
+                        </button>
+
+                        <button
+                          onClick={() => deleteProduct(p.id)}
+                          style={styles.delete}
+                        >
+                          Löschen
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -468,10 +480,7 @@ function getRevenue(product) {
             <input
               value={editingProduct.title}
               onChange={(e) =>
-                setEditingProduct({
-                  ...editingProduct,
-                  title: e.target.value,
-                })
+                setEditingProduct({ ...editingProduct, title: e.target.value })
               }
               style={styles.input}
             />
@@ -480,10 +489,7 @@ function getRevenue(product) {
             <input
               value={editingProduct.price}
               onChange={(e) =>
-                setEditingProduct({
-                  ...editingProduct,
-                  price: e.target.value,
-                })
+                setEditingProduct({ ...editingProduct, price: e.target.value })
               }
               style={styles.input}
             />
@@ -492,10 +498,7 @@ function getRevenue(product) {
             <input
               value={editingProduct.image}
               onChange={(e) =>
-                setEditingProduct({
-                  ...editingProduct,
-                  image: e.target.value,
-                })
+                setEditingProduct({ ...editingProduct, image: e.target.value })
               }
               style={styles.input}
             />
@@ -504,10 +507,7 @@ function getRevenue(product) {
             <input
               value={editingProduct.url}
               onChange={(e) =>
-                setEditingProduct({
-                  ...editingProduct,
-                  url: e.target.value,
-                })
+                setEditingProduct({ ...editingProduct, url: e.target.value })
               }
               style={styles.input}
             />
@@ -526,35 +526,28 @@ function getRevenue(product) {
 
             <label style={styles.label}>Anbieter</label>
             <input
-            value={editingProduct.source}
-            onChange={(e) =>
-            setEditingProduct({
-            ...editingProduct,
-            source: e.target.value,
-         })
-       }
-           placeholder="z.B. autofull, amazon, mediamarkt"
-           style={styles.input}
-          />
-            
-              <label style={styles.label}>ASIN nur bei Amazon</label>
-            <input
-              value={editingProduct.asin}
+              value={editingProduct.source}
               onChange={(e) =>
                 setEditingProduct({
                   ...editingProduct,
-                  asin: e.target.value,
+                  source: e.target.value,
                 })
+              }
+              placeholder="z.B. autofull, amazon, mediamarkt"
+              style={styles.input}
+            />
+
+            <label style={styles.label}>ASIN nur bei Amazon</label>
+            <input
+              value={editingProduct.asin}
+              onChange={(e) =>
+                setEditingProduct({ ...editingProduct, asin: e.target.value })
               }
               style={styles.input}
             />
 
             <div style={styles.modalActions}>
-              <button
-                onClick={saveEdit}
-                disabled={saving}
-                style={styles.save}
-              >
+              <button onClick={saveEdit} disabled={saving} style={styles.save}>
                 {saving ? "Speichert..." : "Speichern"}
               </button>
 
