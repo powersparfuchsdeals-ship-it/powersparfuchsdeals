@@ -212,8 +212,30 @@ function getRevenue(product) {
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
-    // 🔒 LOGIN CHECK
-if (!access) {
+    
+    if (sortBy === "clicks") {
+      list.sort((a, b) => Number(b.clicks || 0) - Number(a.clicks || 0));
+    }
+
+    if (sortBy === "revenue") {
+      list.sort((a, b) => getRevenue(b) - getRevenue(a));
+    }
+
+    if (sortBy === "price") {
+      list.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    }
+
+    if (sortBy === "title") {
+      list.sort((a, b) =>
+        String(a.title || a.name || "").localeCompare(
+          String(b.title || b.name || "")
+        )
+      );
+    }
+
+    return list;
+  }, [filteredProducts, sortBy]);
+  if (!access) {
   return (
     <div style={{ padding: 20 }}>
       <h2>Admin Login</h2>
@@ -240,30 +262,7 @@ if (!access) {
       </button>
     </div>
   );
-}
-    if (sortBy === "clicks") {
-      list.sort((a, b) => Number(b.clicks || 0) - Number(a.clicks || 0));
-    }
-
-    if (sortBy === "revenue") {
-      list.sort((a, b) => getRevenue(b) - getRevenue(a));
-    }
-
-    if (sortBy === "price") {
-      list.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-    }
-
-    if (sortBy === "title") {
-      list.sort((a, b) =>
-        String(a.title || a.name || "").localeCompare(
-          String(b.title || b.name || "")
-        )
-      );
-    }
-
-    return list;
-  }, [filteredProducts, sortBy]);
-
+}   
   if (loading) {
     return <div style={{ padding: 20 }}>Lädt...</div>;
   }
