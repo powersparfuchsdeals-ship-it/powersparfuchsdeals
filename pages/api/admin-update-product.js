@@ -5,7 +5,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const ADMIN_PASSWORD = "test1405";
+
 export default async function handler(req, res) {
+  if (req.headers["x-admin-password"] !== ADMIN_PASSWORD) {
+    return res.status(401).json({
+      ok: false,
+      error: "Unauthorized",
+    });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({
       ok: false,
