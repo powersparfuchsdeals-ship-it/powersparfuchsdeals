@@ -5,7 +5,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const ADMIN_PASSWORD = "test1405";
+
 export default async function handler(req, res) {
+  // 🔒 SCHUTZ
+  if (req.headers["x-admin-password"] !== ADMIN_PASSWORD) {
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  }
+
   try {
     const { data, error } = await supabaseAdmin
       .from("products")
