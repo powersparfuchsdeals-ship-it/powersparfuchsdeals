@@ -4,6 +4,7 @@ import ProductCard from "../components/ProductCard";
 import TopDealsSection from "../components/TopDealsSection";
 import CookieBanner from "../components/CookieBanner";
 import { useTracking } from "../lib/useTracking";
+import Head from "next/head";
 
 const SUNSET_GRADIENTS = [
   "linear-gradient(180deg, #fff7c2 0%, #ffe08a 100%)",
@@ -234,8 +235,20 @@ export default function Home() {
   }, [products]);
 
   return (
-    <>
-      <div style={styles.page}>
+  <>
+    <Head>
+      <meta
+        name="p:domain_verify"
+        content="25bb5d24dec4a12744ac71db0a895172"
+      />
+      <title>Orbital-Noir | Technik Deals & Preisfehler</title>
+      <meta
+        name="description"
+        content="Aktuelle Technik Deals, Preisfehler, Gaming Zubehör und Smart Home Angebote."
+      />
+    </Head>
+
+    <div style={styles.page}>
         <div
           style={{
             ...styles.gradientLayer,
