@@ -1,5 +1,5 @@
 import { supabase } from "../../../lib/supabase";
-
+const FEEDS = [];
 
 // 🔥 Affiliate Regeln
 function buildAffiliateLink(url = "") {
