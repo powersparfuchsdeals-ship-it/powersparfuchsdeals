@@ -1,12 +1,5 @@
 import { supabase } from "../../../lib/supabase";
 
-const FEEDS = [
-  {
-    merchant: "Dealfeed",
-    category: "tech",
-    url: "https://www.mydealz.de/rss"
-  }
-];
 
 // 🔥 Affiliate Regeln
 function buildAffiliateLink(url = "") {
