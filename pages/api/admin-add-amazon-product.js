@@ -24,14 +24,19 @@ export default async function handler(req, res) {
     }
 
     const product = {
-      name: "Amazon Test Produkt",
-      price: 0,
-      image: "",
-      description: amazonUrl,
-      buy_link: amazonUrl,
-      source: "amazon",
-      category: "tech",
-    };
+  name: "Amazon Test Produkt",
+  price: 19.99,
+  old_price: 29.99,
+  image: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
+  description: "Testprodukt aus Amazon Auto Transport",
+  buy_link: amazonUrl,
+  source: "amazon",
+  merchant: "Amazon",
+  category: "audio",
+  tag: "featured",
+  clicks: 0,
+  commission_rate: 0.03,
+};
 
     const { data, error } = await supabase
       .from("products")
