@@ -57,6 +57,6 @@ using (bucket_id = 'images');
 Bucket `images` anlegen und public setzen.
 
 
-
+new
 
 
