@@ -7,20 +7,6 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   try {
-    const authHeader = req.headers.authorization;
-
-    console.log("AUTH HEADER:", authHeader);
-    console.log("ENV SECRET:", process.env.CRON_SECRET);
-
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return res.status(401).json({
-        ok: false,
-        error: "Unauthorized",
-        received: authHeader || null,
-        expected: process.env.CRON_SECRET ? "exists" : "missing",
-      });
-    }
-
     const { data, error } = await supabase
       .from("products")
       .select("id")
