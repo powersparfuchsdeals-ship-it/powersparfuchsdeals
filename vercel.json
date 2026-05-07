@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/import-amazon",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/ping-supabase",
+      "schedule": "0 */12 * * *"
     }
   ]
 }
