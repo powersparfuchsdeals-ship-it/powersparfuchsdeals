@@ -45,9 +45,7 @@ export default function ProductCard({ p, trackClick }) {
           src={imageUrl}
           alt={product.name || "Produkt"}
           style={styles.productImage}
-          onError={(e) => {
-            e.currentTarget.src = "/placeholder.png";
-          }}
+          
         />
       </div>
 
