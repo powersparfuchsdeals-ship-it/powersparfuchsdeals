@@ -32,7 +32,6 @@ export default function DealCard({ deal, onClick }) {
       <div className="relative">
         <img
           src={imgError ? "/placeholder.png" : (deal.image || deal.thumbnail)}
-          onError={() => setImgError(true)}
           alt={deal.title}
           className="w-full h-48 object-contain rounded-xl bg-black"
         />
