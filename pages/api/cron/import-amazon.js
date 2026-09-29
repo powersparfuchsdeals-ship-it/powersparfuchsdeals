@@ -140,7 +140,7 @@ export default async function handler(req, res) {
   const authHeader = req.headers.authorization || "";
   const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
 
-  if (cronSecret && bearer !== cronSecret) {
+  if (!cronSecret || bearer !== cronSecret) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 

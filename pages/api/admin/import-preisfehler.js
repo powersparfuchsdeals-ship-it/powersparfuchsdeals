@@ -1,3 +1,4 @@
+import { requireAdminPassword } from "../../../lib/requireAdminPassword";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -58,6 +59,7 @@ function isPriceErrorCandidate(item) {
 }
 
 export default async function handler(req, res) {
+  if (!requireAdminPassword(req, res)) return;
   if (req.method !== "GET" && req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }

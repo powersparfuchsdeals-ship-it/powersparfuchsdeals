@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AmazonAutoTransport from "../components/AmazonAutoTransport";
 
 function formatPrice(value) {
@@ -14,10 +14,45 @@ function getRevenue(product) {
 }
 
 export default function AdminPage() {
-  const PASSWORD = "Peugoet@1405";
 
   const [access, setAccess] = useState(false);
   const [input, setInput] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  async function login(event) {
+    event.preventDefault();
+    setLoggingIn(true);
+    setLoginError("");
+    try {
+      const response = await fetch("/api/admin-products", {
+        headers: { "x-admin-password": input },
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        setLoginError(data.error || "Anmeldung fehlgeschlagen.");
+        return;
+      }
+      setAdminPassword(input);
+      setInput("");
+      setProducts(data.products || []);
+      setAccess(true);
+    } catch {
+      setLoginError("Server nicht erreichbar. Bitte erneut versuchen.");
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  function logout() {
+    setAdminPassword("");
+    setInput("");
+    setProducts([]);
+    setEditingProduct(null);
+    setAccess(false);
+  }
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +79,7 @@ export default function AdminPage() {
 
       const res = await fetch("/api/admin-products", {
         headers: {
-          "x-admin-password": PASSWORD,
+          "x-admin-password": adminPassword,
         },
       });
 
@@ -83,7 +118,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": PASSWORD,
+          "x-admin-password": adminPassword,
         },
         body: JSON.stringify(newProduct),
       });
@@ -121,7 +156,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": PASSWORD,
+          "x-admin-password": adminPassword,
         },
         body: JSON.stringify({ id }),
       });
@@ -163,7 +198,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": PASSWORD,
+          "x-admin-password": adminPassword,
         },
         body: JSON.stringify(editingProduct),
       });
@@ -185,11 +220,7 @@ export default function AdminPage() {
     }
   }
 
-  useEffect(() => {
-    if (access) {
-      loadProducts();
-    }
-  }, [access]);
+
 
   const stats = useMemo(() => {
     return {
@@ -247,30 +278,17 @@ export default function AdminPage() {
 
   if (!access) {
     return (
-      <div style={{ padding: 20 }}>
+      <form onSubmit={login} style={{ padding: 20, maxWidth: 420 }}>
         <h2>Admin Login</h2>
-
-        <input
-          type="password"
-          placeholder="Passwort"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          style={styles.input}
-        />
-
-        <button
-          onClick={() => {
-            if (input === PASSWORD) {
-              setAccess(true);
-            } else {
-              alert("Falsch");
-            }
-          }}
-          style={styles.save}
-        >
-          Login
+        <label htmlFor="admin-password">Passwort</label>
+        <input id="admin-password" type="password" autoComplete="current-password"
+          value={input} onChange={(e) => setInput(e.target.value)}
+          required maxLength={1024} style={styles.input} />
+        {loginError && <p role="alert">{loginError}</p>}
+        <button type="submit" disabled={loggingIn} style={styles.save}>
+          {loggingIn ? "Wird geprüft…" : "Login"}
         </button>
-      </div>
+      </form>
     );
   }
 
@@ -281,6 +299,7 @@ export default function AdminPage() {
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>Admin Dashboard</h1>
+      <button onClick={logout} style={styles.cancel}>Abmelden</button>
 
       <div style={styles.grid}>
         <div style={styles.card}>
@@ -346,7 +365,7 @@ export default function AdminPage() {
         </div>
 
         <div style={styles.card}>
-          <AmazonAutoTransport onProductAdded={loadProducts} />
+          <AmazonAutoTransport adminPassword={adminPassword} onProductAdded={loadProducts} />
         </div>
       </div>
 

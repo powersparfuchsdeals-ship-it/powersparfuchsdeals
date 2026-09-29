@@ -1,3 +1,4 @@
+import { requireAdminPassword } from "../../lib/requireAdminPassword";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -6,6 +7,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (!requireAdminPassword(req, res)) return;
   if (req.method !== "POST") {
     return res.status(405).json({
       ok: false,

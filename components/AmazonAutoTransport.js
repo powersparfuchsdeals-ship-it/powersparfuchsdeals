@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function AmazonAutoTransport({ onProductAdded }) {
+export default function AmazonAutoTransport({ onProductAdded, adminPassword }) {
   const [amazonUrl, setAmazonUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +15,7 @@ export default function AmazonAutoTransport({ onProductAdded }) {
     try {
       const res = await fetch("/api/admin-add-amazon-product", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-password": adminPassword },
         body: JSON.stringify({ amazonUrl }),
       });
 

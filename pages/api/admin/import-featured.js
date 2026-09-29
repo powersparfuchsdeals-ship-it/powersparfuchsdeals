@@ -1,3 +1,4 @@
+import { requireAdminPassword } from "../../../lib/requireAdminPassword";
 import { createClient } from "@supabase/supabase-js";
 import { importFeedRows } from "../../../lib/feedImport";
 
@@ -52,6 +53,7 @@ function isGoodProduct(item) {
 }
 
 export default async function handler(req, res) {
+  if (!requireAdminPassword(req, res)) return;
   const baseUrl = getBaseUrl(req);
 
   let created = 0;

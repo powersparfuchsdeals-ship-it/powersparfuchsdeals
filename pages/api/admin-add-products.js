@@ -1,3 +1,4 @@
+import { requireAdminPassword } from "../../lib/requireAdminPassword";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -5,16 +6,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const ADMIN_PASSWORD = "test1405";
 
 export default async function handler(req, res) {
-  // 🔒 Passwortschutz
-  if (req.headers["x-admin-password"] !== ADMIN_PASSWORD) {
-    return res.status(401).json({
-      ok: false,
-      error: "Unauthorized",
-    });
-  }
+  if (!requireAdminPassword(req, res)) return;
 
   if (req.method !== "POST") {
     return res.status(405).json({

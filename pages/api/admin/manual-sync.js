@@ -1,4 +1,6 @@
+import { requireAdminPassword } from "../../../lib/requireAdminPassword";
 export default async function handler(req, res) {
+  if (!requireAdminPassword(req, res)) return;
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://www.orbital-noir.com";
 

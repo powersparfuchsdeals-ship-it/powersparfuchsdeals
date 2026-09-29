@@ -14,9 +14,8 @@ export default async function handler(req, res) {
 
   const expectedSecret = process.env.CRON_SECRET;
   const token = getBearerToken(req);
-  const isCron = req.headers["x-vercel-cron"] === "1";
 
-  if (!isCron && (!expectedSecret || token !== expectedSecret)) {
+  if (!expectedSecret || token !== expectedSecret) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
