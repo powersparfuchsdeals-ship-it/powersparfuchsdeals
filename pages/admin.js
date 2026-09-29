@@ -14,7 +14,7 @@ function getRevenue(product) {
 }
 
 export default function AdminPage() {
-  const PASSWORD = "test1405";
+  const PASSWORD = "Peugoet@1405";
 
   const [access, setAccess] = useState(false);
   const [input, setInput] = useState("");
